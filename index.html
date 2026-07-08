@@ -1,30 +1,255 @@
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0 , user-scalable=no">
-        <title>Sudoku</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Diary Application</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+        }
 
-        <link rel="stylesheet" href="sudoku.css">
-        <script src="sudoku.js"></script>
-    </head>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 2rem; display: flex; justify-content: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 900px; }
+        
+        /* Auth Styles */
+        .auth-card { background: var(--panel-bg); padding: 2.5rem; border-radius: 12px; max-width: 400px; margin: 10vh auto; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+        h2 { margin-bottom: 1.5rem; text-align: center; color: var(--text-main); }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--text-muted); }
+        input, textarea { width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 1rem; }
+        input:focus, textarea:focus { border-color: var(--accent); outline: none; }
+        button { width: 100%; padding: 0.75rem; background: var(--accent); border: none; color: white; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.2s; font-size: 1rem; }
+        button:hover { background: var(--accent-hover); }
+        .toggle-link { text-align: center; margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted); cursor: pointer; }
+        .toggle-link span { color: var(--accent); text-decoration: underline; }
 
+        /* Dashboard Styles */
+        .hidden { display: none !important; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #334155; }
+        .logout-btn { width: auto; background: transparent; border: 1px solid var(--danger); color: var(--danger); padding: 0.5rem 1rem; }
+        .logout-btn:hover { background: var(--danger); color: white; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; }
+        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+        .entry-card { background: var(--panel-bg); padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; position: relative; border-left: 4px solid var(--accent); }
+        .entry-card h3 { margin-bottom: 0.5rem; }
+        .entry-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; }
+        .entry-date { font-size: 0.75rem; color: #64748b; margin-top: 0.5rem; }
+        .actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+        .actions button { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+        .edit-btn { background: #334155; }
+        .edit-btn:hover { background: #475569; }
+        .del-btn { background: var(--danger); }
+        .del-btn:hover { background: #dc2626; }
+    </style>
+</head>
 <body>
-    <h1>Sudoku</h1>
-    <hr>
-    <h2 id="errors">Error: 0</h2>
 
-    <div id="board"></div>
-    <hr>
-    <div id="digits">
-        <div id="1" class ="number">1</div>
-        <div id="2" class ="number">2</div>
-        <div id="3" class ="number">3</div>
-        <div id="4" class ="number">4</div>
-        <div id="5" class ="number">5</div>
-        <div id="6" class ="number">6</div>
-        <div id="7" class ="number">7</div>
-        <div id="8" class ="number">8</div>
-        <div id="9" class ="number">9</div>
+<div class="container">
+    <div id="authView" class="auth-card">
+        <h2 id="authTitle">Login to Your Diary</h2>
+        <form id="authForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" id="authSubmitBtn">Sign In</button>
+            <p class="toggle-link" id="toggleAuth">Don't have an account? <span>Register</span></p>
+        </form>
     </div>
+
+    <div id="dashboardView" class="hidden">
+        <div class="header">
+            <h2>Welcome, <span id="userGreeting"></span>'s Journal</h2>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div>
+                <div class="auth-card" style="margin: 0; max-width: 100%;">
+                    <h3 style="margin-bottom: 1rem;" id="formTitle">New Diary Entry</h3>
+                    <form id="entryForm">
+                        <input type="hidden" id="entryId">
+                        <div class="form-group">
+                            <label for="entryTitle">Title</label>
+                            <input type="text" id="entryTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="entryContent">Thoughts...</label>
+                            <textarea id="entryContent" rows="8" required></textarea>
+                        </div>
+                        <button type="submit" id="entrySubmitBtn">Save Entry</button>
+                        <button type="button" id="cancelEditBtn" class="edit-btn hidden" style="margin-top: 0.5rem;" onclick="resetEntryForm()">Cancel Edit</button>
+                    </form>
+                </div>
+            </div>
+
+            <div>
+                <h3 style="margin-bottom: 1rem;">Past Entries</h3>
+                <div id="entriesContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:5000/api';
+    let isLoginMode = true;
+    let token = localStorage.getItem('diary_token');
+    let currentUser = JSON.parse(localStorage.getItem('diary_user'));
+
+    // UI View Switcher Toggle
+    document.getElementById('toggleAuth').addEventListener('click', () => {
+        isLoginMode = !isLoginMode;
+        document.getElementById('authTitle').innerText = isLoginMode ? 'Login to Your Diary' : 'Register Account';
+        document.getElementById('authSubmitBtn').innerText = isLoginMode ? 'Sign In' : 'Create Account';
+        document.getElementById('toggleAuth').innerHTML = isLoginMode ? "Don't have an account? <span>Register</span>" : "Already have an account? <span>Login</span>";
+    });
+
+    // Check session initialization
+    if (token && currentUser) { showDashboard(); }
+
+    // AUTH ACTION
+    document.getElementById('authForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const endpoint = isLoginMode ? '/login' : '/register';
+
+        try {
+            const res = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Something went wrong');
+
+            if (isLoginMode) {
+                localStorage.setItem('diary_token', data.token);
+                localStorage.setItem('diary_user', JSON.stringify(data.user));
+                token = data.token;
+                currentUser = data.user;
+                showDashboard();
+            } else {
+                alert('Registration complete! Moving to Login.');
+                isLoginMode = true;
+                document.getElementById('toggleAuth').click();
+            }
+        } catch (err) { alert(err.message); }
+    });
+
+    function showDashboard() {
+        document.getElementById('authView').classList.add('hidden');
+        document.getElementById('dashboardView').classList.remove('hidden');
+        document.getElementById('userGreeting').innerText = currentUser.username;
+        fetchEntries();
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.reload();
+    }
+
+    // JOURNAL HANDLING: FETCH ALL USER ENTRIES
+    async function fetchEntries() {
+        try {
+            const res = await fetch(`${API_URL}/entries`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const entries = await res.json();
+            const container = document.getElementById('entriesContainer');
+            container.innerHTML = '';
+
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted);">No entries yet. Write your first thought!</p>';
+                return;
+            }
+
+            entries.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(entry => {
+                const date = new Date(entry.createdAt).toLocaleString();
+                container.innerHTML += `
+                    <div class="entry-card">
+                        <h3>${entry.title}</h3>
+                        <p>${entry.content}</p>
+                        <div class="entry-date">${date}</div>
+                        <div class="actions">
+                            <button class="edit-btn" onclick="startEdit('${entry.id}', \`${entry.title.replace(/'/g, "\\'")}\`, \`${entry.content.replace(/'/g, "\\'")}\`)">Edit</button>
+                            <button class="del-btn" onclick="deleteEntry('${entry.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch (err) { console.error(err); }
+    }
+
+    // SAVING OR UPDATING ENTRY
+    document.getElementById('entryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('entryId').value;
+        const title = document.getElementById('entryTitle').value;
+        const content = document.getElementById('entryContent').value;
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_URL}/entries/${id}` : `${API_URL}/entries`;
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ title, content })
+            });
+            if (!res.ok) throw new Error('Failed to save entry');
+            resetEntryForm();
+            fetchEntries();
+        } catch (err) { alert(err.message); }
+    });
+
+    function startEdit(id, title, content) {
+        document.getElementById('entryId').value = id;
+        document.getElementById('entryTitle').value = title;
+        document.getElementById('entryContent').value = content;
+        document.getElementById('formTitle').innerText = "Edit Entry";
+        document.getElementById('entrySubmitBtn').innerText = "Update Entry";
+        document.getElementById('cancelEditBtn').classList.remove('hidden');
+    }
+
+    function resetEntryForm() {
+        document.getElementById('entryId').value = '';
+        document.getElementById('entryForm').reset();
+        document.getElementById('formTitle').innerText = "New Diary Entry";
+        document.getElementById('entrySubmitBtn').innerText = "Save Entry";
+        document.getElementById('cancelEditBtn').classList.add('hidden');
+    }
+
+    async function deleteEntry(id) {
+        if (!confirm('Are you sure you want to delete this entry?')) return;
+        try {
+            const res = await fetch(`${API_URL}/entries/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error('Failed to delete');
+            fetchEntries();
+        } catch (err) { alert(err.message); }
+    }
+</script>
 </body>
 </html>

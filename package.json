@@ -1,31 +1,20 @@
 {
-  "name": "org.apache.cordova.hellocordova",
-  "displayName": "Hello Cordova",
+  "name": "personal-diary-app",
   "version": "1.0.0",
-  "description": "A sample Apache Cordova application that responds to the deviceready event.",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [
-    "ecosystem:cordova"
-  ],
-  "author": "Apache Cordova Team",
-  "license": "Apache-2.0",
-  "devDependencies": {
-    "cordova-android": "^15.0.0",
-    "cordova-browser": "^7.0.0",
-    "cordova-plugin-android-permissions": "^1.1.5",
-    "cordova-plugin-contacts": "^3.0.1"
-  },
-  "cordova": {
-    "platforms": [
-      "android",
-      "browser"
-    ],
-    "plugins": {
-      "cordova-plugin-contacts": {},
-      "cordova-plugin-android-permissions": {}
-    }
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "uuid": "^14.0.1"
   }
 }
