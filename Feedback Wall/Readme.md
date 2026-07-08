@@ -1,4 +1,4 @@
-# Mini Feedback Wall 📝
+# Feedback Wall 📝
 
 A simple, lightweight full-stack web application built using **pure JavaScript** (no external frameworks like Express or React). It allows users to write messages on a digital guestbook wall that persist across page reloads using a local JSON file database.
 
