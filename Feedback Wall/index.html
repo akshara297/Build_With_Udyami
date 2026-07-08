@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Feedback Wall</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Mini Feedback Wall</h1>
+        
+        <form id="messageForm">
+            <input type="text" id="nameInput" placeholder="Your Name" required>
+            <textarea id="textInput" placeholder="Leave a message..." required></textarea>
+            <button type="submit">Post Message</button>
+        </form>
+
+        <hr>
+
+        <h2>Wall Messages</h2>
+        <div id="messagesContainer">Loading messages...</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
