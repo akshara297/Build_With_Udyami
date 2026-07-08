@@ -10,7 +10,7 @@ A simple, lightweight full-stack web application built using **pure JavaScript**
 
 ---
 
-## 📁 Project Directory Structure
+## 📁 Project Directory 
 
 ```text
 feedback-wall/
