@@ -2,7 +2,7 @@
 
 A simple, lightweight full-stack web application built using **pure JavaScript** (no external frameworks like Express or React). It allows users to write messages on a digital guestbook wall that persist across page reloads using a local JSON file database.
 
-## 🚀 Features
+## 🚀 Core Features 
 *   **Pure Native Stack:** Built using only standard vanilla HTML, CSS, Node.js (HTTP module), and Browser JS.
 *   **Data Persistence:** Uses a lightweight JSON file (`messages.json`) as a makeshift database.
 *   **XSS Protection:** Essential sanitization on the client side to prevent malicious script injection.
