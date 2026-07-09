@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akshara | GOAT Portfolio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pink: #ff00ff;
+            --orange: #ff4500;
+            --bg: #0d0118;
+        }
+
+        * { box-sizing: border-box; cursor: crosshair; }
+        html { scroll-behavior: smooth; }
+        
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- THE ALIVE BACKGROUND --- */
+        #particles-js {
+            position: fixed; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at center, #1a012a 0%, #05010a 100%);
+        }
+
+        /* --- NAV BAR --- */
+        nav {
+            position: fixed; top: 0; width: 100%; height: 80px;
+            display: flex; justify-content: center; align-items: center;
+            gap: 50px; background: rgba(13, 1, 24, 0.9); backdrop-filter: blur(15px);
+            border-bottom: 2px solid var(--pink); z-index: 1000;
+        }
+        nav a { 
+            color: white; text-decoration: none; font-family: 'Orbitron'; 
+            font-size: 14px; letter-spacing: 2px; transition: 0.3s; 
+        }
+        nav a:hover { color: var(--orange); text-shadow: 0 0 15px var(--orange); }
+
+        /* --- HERO SECTION --- */
+        section { 
+            min-height: 100vh; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; padding: 100px 20px; 
+            text-align: center; 
+        }
+        
+        /* Your Photo with image.jpg.jpeg */
+        .profile-pic {
+            width: 220px; height: 220px; border-radius: 50%;
+            border: 5px solid var(--pink);
+            box-shadow: 0 0 40px var(--pink);
+            object-fit: cover; margin-bottom: 30px;
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); border-color: var(--pink); box-shadow: 0 0 20px var(--pink); }
+            100% { transform: scale(1.05); border-color: var(--orange); box-shadow: 0 0 50px var(--orange); }
+        }
+
+        h1.big-name {
+            font-family: 'Orbitron'; font-size: clamp(4rem, 18vw, 10rem); margin: 0;
+            background: linear-gradient(to right, var(--pink), var(--orange), var(--pink));
+            background-size: 200% auto;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-transform: uppercase; line-height: 0.9;
+            animation: shineText 3s linear infinite;
+        }
+
+        @keyframes shineText {
+            to { background-position: 200% center; }
+        }
+
+        /* --- PROJECT TILES --- */
+        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; width: 100%; max-width: 1200px; }
+        
+        .card {
+            width: 380px; background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--pink); border-radius: 25px;
+            padding: 40px; text-align: left; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(12px); position: relative;
+        }
+        .card:hover { 
+            transform: translateY(-20px) scale(1.02); 
+            border-color: var(--orange); box-shadow: 0 15px 50px rgba(255, 69, 0, 0.3);
+        }
+
+        .card h3 { font-family: 'Orbitron'; color: var(--pink); margin-top: 0; font-size: 28px; }
+
+        .btn {
+            display: inline-block; margin-top: 30px; padding: 15px 35px;
+            background: linear-gradient(45deg, var(--pink), var(--orange));
+            color: white; text-decoration: none; border-radius: 10px;
+            font-weight: 900; font-family: 'Orbitron'; font-size: 14px; transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 0, 255, 0.4);
+        }
+        .btn:hover { transform: scale(1.1); box-shadow: 0 0 30px var(--orange); }
+
+        /* --- MUSIC BUTTON --- */
+        #music-btn {
+            position: fixed; bottom: 40px; right: 40px; z-index: 2000;
+            background: var(--pink); color: white; border: none;
+            width: 70px; height: 70px; border-radius: 50%;
+            font-size: 24px; cursor: pointer; box-shadow: 0 0 30px var(--pink);
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="particles-js"></div>
+
+    <nav>
+        <a href="#home">HOME</a>
+        <a href="#work">WORK</a>
+        <a href="#contact">CONTACT</a>
+    </nav>
+
+    <button id="music-btn">▶</button>
+    <audio id="bgm" loop><source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" type="audio/mpeg"></audio>
+
+    <section id="home">
+        <img src="image.jpg.jpeg" alt="Akshara" class="profile-pic">
+        <h1 class="big-name">AKSHARA</h1>
+        <p style="letter-spacing: 15px; color: white; font-weight: bold; margin-top: 25px; opacity: 0.8;">FULL-STACK // INNOVATOR</p>
+    </section>
+
+    <section id="work">
+        <h2 style="font-family: 'Orbitron'; font-size: 3.5rem; margin-bottom: 60px; color: var(--orange); text-shadow: 0 0 20px var(--orange);">PROJECT VAULT</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Focus App</h3>
+                <p>Advanced concentration engine designed to optimize workflow and deep focus.</p>
+                <a href="learning.html" class="btn">INITIALIZE .EXE</a>
+            </div>
+            <div class="card">
+                <h3>Temp Converter</h3>
+                <p>High-speed thermal scaling algorithm with real-time conversion logic.</p>
+                <a href="converter.html" class="btn">INITIALIZE .EXE</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact">
+        <h2 style="font-family: 'Orbitron'; font-size: 3rem;">REACH OUT</h2>
+        <div style="display:flex; gap:30px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
+            <a href="https://github.com/akshara297" class="btn">GITHUB</a>
+            <a href="https://www.linkedin.com/in/akshara-khatri-951101282" class="btn">LINKEDIN</a>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Particle Background with Pink and Orange stars
+        particlesJS("particles-js", {
+            "particles": {
+                "number": { "value": 150 },
+                "color": { "value": ["#ff00ff", "#ff4500"] },
+                "shape": { "type": "circle" },
+                "opacity": { "value": 0.7 },
+                "size": { "value": 4 },
+                "line_linked": { "enable": true, "distance": 150, "color": "#ff00ff", "opacity": 0.3, "width": 1 },
+                "move": { "enable": true, "speed": 4 }
+            },
+            "interactivity": {
+                "events": { "onhover": { "enable": true, "mode": "repulse" } }
+            }
+        });
+
+        // Music Logic
+        const music = document.getElementById('bgm');
+        const btn = document.getElementById('music-btn');
+        btn.onclick = () => {
+            if (music.paused) {
+                music.play();
+                btn.innerText = "II";
+                btn.style.background = "var(--orange)";
+                btn.style.boxShadow = "0 0 30px var(--orange)";
+            } else {
+                music.pause();
+                btn.innerText = "▶";
+                btn.style.background = "var(--pink)";
+                btn.style.boxShadow = "0 0 30px var(--pink)";
+            }
+        };
+    </script>
+</body>
+</html>
