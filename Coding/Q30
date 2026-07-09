@@ -1,0 +1,11 @@
+def dailyTemperatures(temperatures: list[int]) -> list[int]:
+    res = [0] * len(temperatures)
+    stack = [] # holds indices
+    
+    for idx, temp in enumerate(temperatures):
+        while stack and temp > temperatures[stack[-1]]:
+            prev_idx = stack.pop()
+            res[prev_idx] = idx - prev_idx
+        stack.append(idx)
+        
+    return res
