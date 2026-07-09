@@ -1,0 +1,19 @@
+def maxSlidingWindow(nums: list[int], k: int) -> list[int]:
+    q = deque() # Stores indices
+    res = []
+    
+    for i, num in enumerate(nums):
+        # 1. Clear out smaller elements from back
+        while q and nums[q[-1]] < num:
+            q.pop()
+        q.append(i)
+        
+        # 2. Remove front element if it's out of window bounds
+        if q[0] == i - k:
+            q.popleft()
+            
+        # 3. Add to result once window reaches size k
+        if i >= k - 1:
+            res.append(nums[q[0]])
+            
+    return res
