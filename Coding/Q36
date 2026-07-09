@@ -1,0 +1,14 @@
+class UniqueStream:
+    def __init__(self):
+        self.counts = {}
+        self.q = deque()
+
+    def add(self, char: str) -> None:
+        self.counts[char] = self.counts.get(char, 0) + 1
+        self.q.append(char)
+
+    def getFirstUnique(self) -> str:
+        # Clean up the queue front until a unique character is found
+        while self.q and self.counts[self.q[0]] > 1:
+            self.q.popleft()
+        return self.q[0] if self.q else "#"
