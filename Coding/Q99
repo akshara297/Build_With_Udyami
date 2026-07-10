@@ -1,0 +1,16 @@
+def uniquePathsWithObstacles(obstacleGrid: list[list[int]]) -> int:
+    if not obstacleGrid or obstacleGrid[0][0] == 1:
+        return 0
+        
+    width = len(obstacleGrid[0])
+    dp = [0] * width
+    dp[0] = 1 # Base case
+    
+    for row in obstacleGrid:
+        for c in range(width):
+            if row[c] == 1:
+                dp[c] = 0
+            elif c > 0:
+                dp[c] += dp[c - 1]
+                
+    return dp[width - 1]
