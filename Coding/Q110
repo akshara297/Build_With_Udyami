@@ -1,0 +1,16 @@
+def countSubstrings(s: str) -> int:
+    count = 0
+    
+    def expand(left, right):
+        total = 0
+        while left >= 0 and right < len(s) and s[left] == s[right]:
+            total += 1
+            left -= 1
+            right += 1
+        return total
+
+    for i in range(len(s)):
+        count += expand(i, i)     # Odd length checks
+        count += expand(i, i + 1) # Even length checks
+        
+    return count
