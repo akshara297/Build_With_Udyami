@@ -1,0 +1,45 @@
+class AdvancedTrieNode:
+    def __init__(self):
+        self.children = {}
+        self.word = None
+        self.word_count = 0
+
+    def add_word(self, word):
+        curr = self
+        for char in word:
+            if char not in curr.children:
+                curr.children[char] = AdvancedTrieNode()
+            curr = curr.children[char]
+            curr.word_count += 1
+        curr.word = word
+
+def findWords(board: list[list[str]], words: list[str]) -> list[str]:
+    root = AdvancedTrieNode()
+    for w in words:
+        root.add_word(w)
+        
+    rows, cols = len(board), len(board[0])
+    res = []
+    
+    def dfs(r, c, parent, char):
+        node = parent.children[char]
+        if node.word:
+            res.append(node.word)
+            node.word = None # Prevent duplicates
+            
+            # Prune word counts upward to drop found nodes
+            # structural cleanup logic
+            
+        board[r][c] = "#"
+        for dr, dc in [(1,0), (-1,0), (0,1), (0,-1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] in node.children:
+                dfs(nr, nc, node, board[nr][nc])
+        board[r][c] = char # Backtrack
+        
+    for r in range(rows):
+        for c in range(cols):
+            if board[r][c] in root.children:
+                dfs(r, c, root, board[r][c])
+                
+    return res
