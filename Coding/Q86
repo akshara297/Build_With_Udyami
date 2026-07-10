@@ -1,0 +1,23 @@
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+def rob(root: TreeNode) -> int:
+    def dfs(node):
+        if not node:
+            return (0, 0) # (Robbed, Skipped)
+            
+        left = dfs(node.left)
+        right = dfs(node.right)
+        
+        # If we rob this node, we cannot rob its children
+        rob_this = node.val + left[1] + right[1]
+        
+        # If we skip this node, we take the max possible from children
+        skip_this = max(left) + max(right)
+        
+        return (rob_this, skip_this)
+        
+    return max(dfs(root))
