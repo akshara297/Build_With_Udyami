@@ -1,0 +1,18 @@
+def findRedundantConnection(edges: list[list[int]]) -> list[int]:
+    parent = [i for i in range(len(edges) + 1)]
+    
+    def find(n):
+        if parent[n] != n:
+            parent[n] = find(parent[n]) # Path compression
+        return parent[n]
+        
+    def union(n1, n2):
+        root1, root2 = find(n1), find(n2)
+        if root1 == root2:
+            return False # Already connected, cycle found!
+        parent[root1] = root2
+        return True
+
+    for u, v in edges:
+        if not union(u, v):
+            return [u, v]
