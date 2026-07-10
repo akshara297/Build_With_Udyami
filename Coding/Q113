@@ -1,0 +1,15 @@
+def canCompleteCircuit(gas: list[int], cost: list[int]) -> int:
+    if sum(gas) < sum(cost):
+        return -1
+        
+    tank = 0
+    start = 0
+    
+    for i in range(len(gas)):
+        tank += gas[i] - cost[i]
+        # If tank falls below 0, reset start pointer to next location
+        if tank < 0:
+            start = i + 1
+            tank = 0
+            
+    return start
