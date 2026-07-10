@@ -1,0 +1,43 @@
+class TrieNode:
+    def __init__(self):
+        self.children = {}
+        self.word = None
+
+    def add_word(self, word):
+        curr = self
+        for char in word:
+            if char not in curr.children:
+                curr.children[char] = TrieNode()
+            curr = curr.children[char]
+        curr.word = word
+
+def findWords(board: list[list[str]], words: list[str]) -> list[str]:
+    root = TrieNode()
+    for w in words:
+        root.add_word(w)
+        
+    rows, cols = len(board), len(board[0])
+    res = []
+    
+    def dfs(r, c, node):
+        char = board[r][c]
+        if char not in node.children:
+            return
+            
+        next_node = node.children[char]
+        if next_node.word:
+            res.append(next_node.word)
+            next_node.word = None # Prevent adding duplicate matches
+            
+        board[r][c] = "#" # Mark visited
+        for dr, dc in [(1,0), (-1,0), (0,1), (0,-1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] != "#":
+                dfs(nr, nc, next_node)
+        board[r][c] = char # Backtrack
+        
+    for r in range(rows):
+        for c in range(cols):
+            dfs(r, c, root)
+            
+    return res
