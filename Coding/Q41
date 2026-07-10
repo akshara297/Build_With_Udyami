@@ -1,0 +1,22 @@
+import heapq
+from collections import defaultdict
+
+def networkDelayTime(times, n, k):
+    graph = defaultdict(list)
+    for u, v, w in times:
+        graph[u].append((v, w))
+        
+    min_heap = [(0, k)] # (cost, node)
+    visited = {}
+    
+    while min_heap:
+        w1, u = heapq.heappop(min_heap)
+        if u in visited:
+            continue
+        visited[u] = w1
+        
+        for v, w2 in graph[u]:
+            if v not in visited:
+                heapq.heappush(min_heap, (w1 + w2, v))
+                
+    return max(visited.values()) if len(visited) == n else -1
