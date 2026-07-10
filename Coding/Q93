@@ -1,0 +1,13 @@
+def longestCommonPrefix(strs: list[str]) -> str:
+    if not strs: return ""
+    
+    prefix = strs[0]
+    
+    for string in strs[1:]:
+        # Truncate prefix until it matches the start of the current string
+        while not string.startswith(prefix):
+            prefix = prefix[:-1]
+            if not prefix:
+                return ""
+                
+    return prefix
