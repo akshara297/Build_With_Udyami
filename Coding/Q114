@@ -1,0 +1,21 @@
+def lengthOfLongestSubstringKDistinct(s: str, k: int) -> int:
+    if k == 0: return 0
+    
+    char_map = {}
+    left = 0
+    max_len = 0
+    
+    for right in range(len(s)):
+        char_map[s[right]] = char_map.get(s[right], 0) + 1
+        
+        # Shrink the window if distinct count breaches k boundary
+        while len(char_map) > k:
+            left_char = s[left]
+            char_map[left_char] -= 1
+            if char_map[left_char] == 0:
+                del char_map[left_char]
+            left += 1
+            
+        max_len = max(max_len, right - left + 1)
+        
+    return max_len
