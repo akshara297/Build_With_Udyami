@@ -1,0 +1,18 @@
+def findTargetSumWays(nums: list[int], target: int) -> int:
+    total_sum = sum(nums)
+    
+    # Check if target is physically achievable
+    if (target + total_sum) % 2 != 0 or abs(target) > total_sum:
+        return 0
+        
+    subset_target = (target + total_sum) // 2
+    
+    # Standard 1D array subset sum space optimization
+    dp = [0] * (subset_target + 1)
+    dp[0] = 1 # Base case: 1 way to make a sum of 0
+    
+    for num in nums:
+        for j in range(subset_target, num - 1, -1):
+            dp[j] += dp[j - num]
+            
+    return dp[subset_target]
