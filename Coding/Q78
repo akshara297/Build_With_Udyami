@@ -1,0 +1,29 @@
+from collections import defaultdict
+
+def calcEquation(equations: list[list[str]], values: list[float], queries: list[list[str]]) -> list[float]:
+    graph = defaultdict(dict)
+    
+    # Step 1: Build the graph
+    for (u, v), val in zip(equations, values):
+        graph[u][v] = val
+        graph[v][u] = 1.0 / val
+        
+    def dfs(start, end, visited):
+        if start not in graph or end not in graph:
+            return -1.0
+        if start == end:
+            return 1.0
+            
+        visited.add(start)
+        for neighbor, weight in graph[start].items():
+            if neighbor not in visited:
+                product = dfs(neighbor, end, visited)
+                if product != -1.0:
+                    return weight * product
+        return -1.0
+
+    # Step 2: Answer queries
+    res = []
+    for q_start, q_end in queries:
+        res.append(dfs(q_start, q_end, set()))
+    return res
