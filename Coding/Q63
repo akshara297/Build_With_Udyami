@@ -1,0 +1,32 @@
+from collections import defaultdict, deque
+
+def ladderLength(beginWord: str, endWord: str, wordList: list[str]) -> int:
+    if endWord not in wordList: return 0
+    
+    # Preprocessing neighbor patterns
+    neighbors = defaultdict(list)
+    wordList.append(beginWord)
+    for word in wordList:
+        for j in range(len(word)):
+            pattern = word[:j] + "*" + word[j+1:]
+            neighbors[pattern].append(word)
+            
+    visited = {beginWord}
+    queue = deque([beginWord])
+    changes = 1
+    
+    while queue:
+        for _ in range(len(queue)):
+            word = queue.popleft()
+            if word == endWord:
+                return changes
+                
+            for j in range(len(word)):
+                pattern = word[:j] + "*" + word[j+1:]
+                for neighbor in neighbors[pattern]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+        changes += 1
+        
+    return 0
