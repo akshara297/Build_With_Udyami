@@ -1,0 +1,19 @@
+from collections import defaultdict
+
+def findItinerary(tickets: list[list[str]]) -> list[str]:
+    graph = defaultdict(list)
+    
+    # Sort in reverse order so we can pop from the end
+    for src, dst in sorted(tickets, reverse=True):
+        graph[src].append(dst)
+        
+    itinerary = []
+    
+    def dfs(airport):
+        while graph[airport]:
+            next_dst = graph[airport].pop()
+            dfs(next_dst)
+        itinerary.append(airport)
+
+    dfs("JFK")
+    return itinerary[::-1]
