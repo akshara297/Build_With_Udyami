@@ -1,0 +1,25 @@
+def findOrder(numCourses: int, prerequisites: list[list[int]]) -> list[int]:
+    adj_list = {i: [] for i in range(numCourses)}
+    for dest, src in prerequisites:
+        adj_list[src].append(dest)
+        
+    output = []
+    # 0 = unvisited, 1 = visiting, 2 = visited
+    state = [0] * numCourses
+    
+    def dfs(node):
+        if state[node] == 1: return False # Cycle found
+        if state[node] == 2: return True  # Already processed
+        
+        state[node] = 1
+        for neighbor in adj_list[node]:
+            if not dfs(neighbor): return False
+            
+        state[node] = 2
+        output.append(node)
+        return True
+
+    for i in range(numCourses):
+        if not dfs(i): return []
+        
+    return output[::-1] # Reverse to get correct forward order
