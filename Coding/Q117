@@ -1,0 +1,13 @@
+def nextGreaterElement(nums1: list[int], nums2: list[int]) -> list[int]:
+    nxt_greater = {}
+    stack = []
+    
+    # Process nums2 to build the lookup dictionary
+    for num in nums2:
+        while stack and num > stack[-1]:
+            popped_num = stack.pop()
+            nxt_greater[popped_num] = num
+        stack.append(num)
+        
+    # Elements left in stack have no greater element to their right
+    return [nxt_greater.get(num, -1) for num in nums1]
