@@ -1,0 +1,20 @@
+def partition(s: str) -> list[list[str]]:
+    res = []
+    
+    def is_palindrome(sub):
+        return sub == sub[::-1]
+        
+    def backtrack(start, path):
+        if start == len(s):
+            res.append(path[:])
+            return
+            
+        for i in range(start, len(s)):
+            prefix = s[start:i + 1]
+            if is_palindrome(prefix):
+                path.append(prefix)
+                backtrack(i + 1, path) # Move start past the matched prefix
+                path.pop()             # Backtrack
+                
+    backtrack(0, [])
+    return res
