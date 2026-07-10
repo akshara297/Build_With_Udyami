@@ -1,0 +1,25 @@
+from collections import Counter
+
+def findAnagrams(s: str, p: str) -> list[int]:
+    s_len, p_len = len(s), len(p)
+    if s_len < p_len: return []
+    
+    p_count = Counter(p)
+    s_count = Counter(s[:p_len - 1])
+    res = []
+    
+    for i in range(p_len - 1, s_len):
+        # Include incoming character
+        s_count[s[i]] += 1
+        
+        # Check if match
+        if s_count == p_count:
+            res.append(i - p_len + 1)
+            
+        # Remove outgoing character from left edge
+        left_char = s[i - p_len + 1]
+        s_count[left_char] -= 1
+        if s_count[left_char] == 0:
+            del s_count[left_char]
+            
+    return res
