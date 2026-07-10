@@ -1,0 +1,15 @@
+def subsetsWithDup(nums: list[int]) -> list[list[int]]:
+    nums.sort()
+    n = len(nums)
+    seen_subsets = set()
+    
+    # Iterate through all 2^n possible bitmask configurations
+    for mask in range(1 << n):
+        current_subset = []
+        for i in range(n):
+            # Check if the i-th bit is set to 1
+            if (mask >> i) & 1:
+                current_subset.append(nums[i])
+        seen_subsets.add(tuple(current_subset))
+        
+    return [list(item) for item in seen_subsets]
