@@ -1,0 +1,27 @@
+from collections import defaultdict
+
+def pathSum(root: TreeNode, targetSum: int) -> int:
+    prefix_sums = defaultdict(int)
+    prefix_sums[0] = 1 # Base case
+    
+    def dfs(node, curr_sum):
+        if not node:
+            return 0
+            
+        curr_sum += node.val
+        # Count paths that end at current node and sum to targetSum
+        num_paths = prefix_sums[curr_sum - targetSum]
+        
+        # Add current path sum to hash map for child nodes to use
+        prefix_sums[curr_sum] += 1
+        
+        # Explore children
+        num_paths += dfs(node.left, curr_sum)
+        num_paths += dfs(node.right, curr_sum)
+        
+        # Backtrack: remove current sum before returning up the recursion stack
+        prefix_sums[curr_sum] -= 1
+        
+        return num_paths
+
+    return dfs(root, 0)
