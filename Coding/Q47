@@ -1,0 +1,45 @@
+import heapq
+from collections import defaultdict
+
+class Twitter:
+    def __init__(self):
+        self.timestamp = 0
+        self.tweets = defaultdict(list)    # userId -> list of (timestamp, tweetId)
+        self.followers = defaultdict(set)  # userId -> set of followeeIds
+
+    def postTweet(self, userId: int, tweetId: int) -> None:
+        self.timestamp += 1
+        # Append the negative timestamp to easily pull the newest with a min-heap
+        self.tweets[userId].append((self.timestamp, tweetId))
+
+    def getNewsFeed(self, userId: int):
+        res = []
+        min_heap = []
+        
+        # Include user's own tweets + followed users' tweets
+        user_ids = set(self.followers[userId])
+        user_ids.add(userId)
+        
+        for uid in user_ids:
+            if uid in self.tweets:
+                # Add the last tweet of each user to the heap
+                index = len(self.tweets[uid]) - 1
+                time, tid = self.tweets[uid][index]
+                # Store (negative timestamp, tweetId, userId, next index to check)
+                heapq.heappush(min_heap, (-time, tid, uid, index - 1))
+                
+        while min_heap and len(res) < 10:
+            neg_time, tid, uid, idx = heapq.heappop(min_heap)
+            res.append(tid)
+            if idx >= 0:
+                time, next_tid = self.tweets[uid][idx]
+                heapq.heappush(min_heap, (-time, next_tid, uid, idx - 1))
+                
+        return res
+
+    def follow(self, followerId: int, followeeId: int) -> None:
+        if followerId != followeeId:
+            self.followers[followerId].add(followeeId)
+
+    def unfollow(self, followerId: int, followeeId: int) -> None:
+        self.followers[followerId].discard(followeeId)
