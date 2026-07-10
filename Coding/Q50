@@ -1,0 +1,12 @@
+def getSum(a: int, b: int) -> int:
+    mask = 0xFFFFFFFF
+    
+    while b != 0:
+        # Sum without carrying
+        xor_sum = (a ^ b) & mask
+        # Carry bits shifted left
+        carry = ((a & b) << 1) & mask
+        a, b = xor_sum, carry
+        
+    # Handle negative values in Python's infinite precision environment
+    return a if a <= 0x7FFFFFFF else ~(a ^ mask)
