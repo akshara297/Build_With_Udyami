@@ -1,0 +1,18 @@
+def subsets(nums):
+    result = []
+    
+    def backtrack(index, current_path):
+        if index == len(nums):
+            result.append(current_path[:])
+            return
+            
+        # Decision 1: Include nums[index]
+        current_path.append(nums[index])
+        backtrack(index + 1, current_path)
+        
+        # Decision 2: Exclude nums[index] (Backtrack)
+        current_path.pop()
+        backtrack(index + 1, current_path)
+        
+    backtrack(0, [])
+    return result
