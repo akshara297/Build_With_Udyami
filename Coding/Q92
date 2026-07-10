@@ -1,0 +1,15 @@
+from collections import Counter
+
+def leastInterval(tasks: list[str], n: int) -> int:
+    counts = Counter(tasks)
+    max_freq = max(counts.values())
+    
+    # Count how many tasks have that exact maximum frequency
+    num_max_freq_tasks = sum(1 for task, count in counts.items() if count == max_freq)
+    
+    # Calculate the formulaic structural layout frame size
+    chunks = max_freq - 1
+    chunk_length = n + 1
+    frame_size = chunks * chunk_length + num_max_freq_tasks
+    
+    return max(frame_size, len(tasks))
