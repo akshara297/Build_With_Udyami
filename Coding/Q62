@@ -1,0 +1,23 @@
+def validTree(n: int, edges: list[list[int]]) -> bool:
+    if len(edges) != n - 1: return False
+    
+    parent = [i for i in range(n)]
+    
+    def find(n1):
+        # Path compression optimization
+        if parent[n1] != n1:
+            parent[n1] = find(parent[n1])
+        return parent[n1]
+        
+    def union(n1, n2):
+        root1, root2 = find(n1), find(n2)
+        if root1 == root2:
+            return False # Cycle detected
+        parent[root1] = root2
+        return True
+
+    for u, v in edges:
+        if not union(u, v):
+            return False
+            
+    return True
