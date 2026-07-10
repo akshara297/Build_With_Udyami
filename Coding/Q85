@@ -1,0 +1,19 @@
+def jump(nums: list[int]) -> int:
+    jumps = 0
+    current_jump_end = 0
+    furthest = 0
+    
+    # We don't need to jump if we are already at the last element
+    for i in range(len(nums) - 1):
+        furthest = max(furthest, i + nums[i])
+        
+        # If we reached the end of our current jump capacity
+        if i == current_jump_end:
+            jumps += 1
+            current_jump_end = furthest
+            
+            # Optimization: break early if we can already reach the end
+            if current_jump_end >= len(nums) - 1:
+                break
+                
+    return jumps
