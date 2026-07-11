@@ -1,0 +1,17 @@
+#include <vector>
+#include <unordered_map>
+
+int subarraySum(std::vector<int>& nums, int k) {
+    int count = 0, sum = 0;
+    std::unordered_map<int, int> prefixSumMap;
+    prefixSumMap[0] = 1; // Base case: a sum of 0 has occurred once
+    
+    for (int num : nums) {
+        sum += num;
+        if (prefixSumMap.count(sum - k)) {
+            count += prefixSumMap[sum - k];
+        }
+        prefixSumMap[sum]++;
+    }
+    return count;
+}
