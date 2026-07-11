@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Virtual Pocket Pet ✨</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+    @keyframes bounce-pop {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1) rotate(3deg); }
+    }
+    .pet-bounce {
+        animation: bounce-pop 0.4s ease-in-out;
+    }
+</style>
+</head>
+<body class="bg-indigo-50 min-h-screen flex items-center justify-center font-sans">
+
+    <!-- SCREEN 1: ADOPTION MENU (Hidden by default, shown if no pet data) -->
+    <div id="setup-card" class="hidden bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full mx-4 border-4 border-indigo-200 text-center">
+        <h1 class="text-3xl font-extrabold text-indigo-600 mb-2">Adopt a Pet!</h1>
+        <p class="text-sm text-gray-500 mb-6">Choose your companion to get started.</p>
+        
+        <!-- Species Selection Grid -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            <button onclick="selectSpecies('cat')" id="choice-cat" class="border-2 border-indigo-500 rounded-xl p-3 text-4xl bg-indigo-50 transform hover:scale-105 transition-all">🐱<span class="block text-xs font-bold text-gray-600 mt-1">Cat</span></button>
+            <button onclick="selectSpecies('dog')" id="choice-dog" class="border-2 border-transparent bg-gray-50 rounded-xl p-3 text-4xl transform hover:scale-105 transition-all">🐶<span class="block text-xs font-bold text-gray-600 mt-1">Dog</span></button>
+            <button onclick="selectSpecies('dragon')" id="choice-dragon" class="border-2 border-transparent bg-gray-50 rounded-xl p-3 text-4xl transform hover:scale-105 transition-all">🐉<span class="block text-xs font-bold text-gray-600 mt-1">Dragon</span></button>
+        </div>
+
+        <input type="text" id="name-input" placeholder="Name your pet..." class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 outline-none focus:border-indigo-500 text-center font-semibold mb-6">
+
+        <button id="btn-adopt" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all">
+            Breathe Life ✨
+        </button>
+    </div>
+
+    <!-- SCREEN 2: MAIN GAME CARD (Hidden until pet is verified) -->
+    <div id="game-card" class="hidden bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full mx-4 border-4 border-indigo-200 text-center">
+        <h1 id="pet-name" class="text-3xl font-extrabold text-indigo-600 mb-1">Loading...</h1>
+        <p id="pet-status-text" class="text-sm text-gray-400 italic mb-6">Connecting...</p>
+
+        <div class="bg-indigo-100 rounded-2xl p-6 mb-6 min-h-[160px] flex items-center justify-center relative overflow-hidden">
+            <div id="pet-avatar" class="text-7xl animate-bounce duration-1000 select-none">🥚</div>
+            <div id="bubble" class="absolute top-2 right-4 bg-white text-xs px-2 py-1 rounded-full shadow text-gray-600 opacity-0 transition-opacity duration-300"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="space-y-4 mb-8 text-left">
+            <div>
+                <div class="flex justify-between text-sm font-medium text-gray-600 mb-1">
+                    <span>🍖 Hunger</span>
+                    <span id="hunger-val">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="hunger-bar" class="bg-amber-500 h-3 rounded-full transition-all duration-500"></div>
+                </div>
+            </div>
+            <div>
+                <div class="flex justify-between text-sm font-medium text-gray-600 mb-1">
+                    <span>❤️ Happiness</span>
+                    <span id="happiness-val">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="happiness-bar" class="bg-rose-500 h-3 rounded-full transition-all duration-500"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-2 gap-4">
+            <button id="btn-feed" class="bg-amber-400 hover:bg-amber-500 text-white font-bold py-3 px-4 rounded-xl shadow-md transform active:scale-95 transition-all text-lg">Feed 🍖</button>
+            <button id="btn-play" class="bg-rose-400 hover:bg-rose-500 text-white font-bold py-3 px-4 rounded-xl shadow-md transform active:scale-95 transition-all text-lg">Play 🎾</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
