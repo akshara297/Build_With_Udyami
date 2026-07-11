@@ -1,0 +1,196 @@
+from datetime import datetime, timedelta
+
+class Book:
+    def __init__(self, isbn, title, author):
+        self.isbn = isbn
+        self.title = title
+        self.author = author
+        self.is_available = True
+
+    def __str__(self):
+        status = "Available" if self.is_available else "Borrowed"
+        return f"[{status}] '{self.title}' by {self.author} (ISBN: {self.isbn})"
+
+
+class LoanRecord:
+    """Tracks the metadata of an active book loan."""
+    def __init__(self, book, checkout_date=None, duration_days=14):
+        self.book = book
+        # Allows passing custom dates for testing purposes, defaults to today
+        self.checkout_date = checkout_date if checkout_date else datetime.now()
+        self.due_date = self.checkout_date + timedelta(days=duration_days)
+
+    def calculate_fine(self, current_date=None, rate_per_day=0.50):
+        """Calculates fine assuming a fixed rate per day past the due date."""
+        if not current_date:
+            current_date = datetime.now()
+        
+        if current_date <= self.due_date:
+            return 0.0
+            
+        overdue_days = (current_date - self.due_date).days
+        return overdue_days * rate_per_day
+
+
+class Member:
+    def __init__(self, member_id, name):
+        self.member_id = member_id
+        self.name = name
+        self.active_loans = {}  # Key: ISBN (string) -> Value: LoanRecord object
+        self.balance_owed = 0.0  # Outstanding settled fines
+
+    def __str__(self):
+        loan_titles = []
+        current_time = datetime.now()
+        
+        for isbn, loan in self.active_loans.items():
+            fine = loan.calculate_fine(current_time)
+            fine_str = f" (OVERDUE - Fine: ${fine:.2f})" if fine > 0 else ""
+            loan_titles.append(f"'{loan.book.title}'{fine_str}")
+            
+        borrowed_str = ", ".join(loan_titles) or "None"
+        return (f"Member ID: {self.member_id} | Name: {self.name} | "
+                f"Owed Fines: ${self.balance_owed:.2f} | Borrowed: {borrowed_str}")
+
+
+class Library:
+    def __init__(self):
+        self.books = {}    
+        self.members = {}  
+
+    def add_book(self, isbn, title, author):
+        if isbn in self.books:
+            print(f"Error: Book with ISBN {isbn} already exists.")
+            return
+        self.books[isbn] = Book(isbn, title, author)
+        print(f"Success: Added '{title}' to the library.")
+
+    def display_books(self):
+        if not self.books:
+            print("The library catalog is empty.")
+            return
+        print("\n--- Library Catalog ---")
+        for book in self.books.values():
+            print(book)
+
+    def register_member(self, member_id, name):
+        if member_id in self.members:
+            print(f"Error: Member ID {member_id} is already registered.")
+            return
+        self.members[member_id] = Member(member_id, name)
+        print(f"Success: Registered member '{name}' (ID: {member_id}).")
+
+    def display_members(self):
+        if not self.members:
+            print("No members registered yet.")
+            return
+        print("\n--- Registered Members ---")
+        for member in self.members.values():
+            print(member)
+
+    def borrow_book(self, member_id, isbn, custom_checkout_date=None):
+        member = self.members.get(member_id)
+        book = self.books.get(isbn)
+
+        if not member:
+            print("Error: Member not found.")
+            return
+        if not book:
+            print("Error: Book not found in catalog.")
+            return
+        if not book.is_available:
+            print(f"Sorry, '{book.title}' is already checked out.")
+            return
+
+        book.is_available = False
+        # Create a detailed loan tracking object
+        loan = LoanRecord(book, checkout_date=custom_checkout_date)
+        member.active_loans[isbn] = loan
+        
+        print(f"Success: {member.name} checked out '{book.title}'.")
+        print(f"Due Date: {loan.due_date.strftime('%Y-%m-%d')}")
+
+    def return_book(self, member_id, isbn, custom_return_date=None):
+        member = self.members.get(member_id)
+        book = self.books.get(isbn)
+        return_date = custom_return_date if custom_return_date else datetime.now()
+
+        if not member or not book:
+            print("Error: Member or Book not found.")
+            return
+        if isbn not in member.active_loans:
+            print(f"Error: {member.name} does not have this book checked out.")
+            return
+
+        loan = member.active_loans[isbn]
+        fine = loan.calculate_fine(return_date)
+
+        # Process return
+        book.is_available = True
+        del member.active_loans[isbn]
+
+        if fine > 0:
+            member.balance_owed += fine
+            print(f"Success: '{book.title}' returned late. A fine of ${fine:.2f} has been added to {member.name}'s account.")
+        else:
+            print(f"Success: '{book.title}' returned on time. No fines applied.")
+
+
+# --- Interactive Menu Loop ---
+def main():
+    library = Library()
+
+    # Seed Data
+    library.add_book("978-0141439518", "Pride and Prejudice", "Jane Austen")
+    library.add_book("978-0743273565", "The Great Gatsby", "F. Scott Fitzgerald")
+    library.register_member("M101", "Alice Smith")
+    
+    # Simulating an overdue scenario for testing
+    # Alice checked out Gatsby 20 days ago (Making it 6 days overdue)
+    twenty_days_ago = datetime.now() - timedelta(days=20)
+    library.borrow_book("M101", "978-0743273565", custom_checkout_date=twenty_days_ago)
+
+    while True:
+        print("\n=== LIBRARY MANAGEMENT SYSTEM (FINES ENABLED) ===")
+        print("1. Add a Book")
+        print("2. Display All Books")
+        print("3. Register a New Member")
+        print("4. Display All Members (View Fines)")
+        print("5. Borrow a Book")
+        print("6. Return a Book")
+        print("7. Exit")
+        
+        choice = input("Choose an option (1-7): ").strip()
+
+        if choice == "1":
+            isbn = input("Enter ISBN: ").strip()
+            title = input("Enter Book Title: ").strip()
+            author = input("Enter Author Name: ").strip()
+            if isbn and title and author:
+                library.add_book(isbn, title, author)
+
+        elif choice == "2":
+            library.display_books()
+
+        elif choice == "3":
+            m_id = input("Enter Member ID: ").strip()
+            name = input("Enter Member Name: ").strip()
+            if m_id and name:
+                library.register_member(m_id, name)
+
+        elif choice == "4":
+            library.display_members()
+
+        elif choice == "5":
+            m_id = input("Enter Member ID: ").strip()
+            isbn = input("Enter ISBN to borrow: ").strip()
+            library.borrow_book(m_id, isbn)
+
+        elif choice == "6":
+            m_id = input("Enter Member ID: ").strip()
+            isbn = input("Enter ISBN to return: ").strip()
+            library.return_book(m_id, isbn)
+
+        elif choice == "7":
+            print("Goodbye!")
+            break
