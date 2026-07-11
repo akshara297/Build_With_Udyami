@@ -1,0 +1,32 @@
+class Node {
+public:
+    int val;
+    Node* next;
+    Node* random;
+    Node(int _val) { val = _val; next = nullptr; random = nullptr; }
+};
+
+#include <unordered_map>
+
+Node* copyRandomList(Node* head) {
+    if (!head) return nullptr;
+    
+    std::unordered_map<Node*, Node*> map; // Old Node -> New Node
+    
+    // Step 1: Create all new nodes without connections
+    Node* curr = head;
+    while (curr) {
+        map[curr] = new Node(curr->val);
+        curr = curr->next;
+    }
+    
+    // Step 2: Connect next and random pointers
+    curr = head;
+    while (curr) {
+        map[curr]->next = map[curr->next];
+        map[curr]->random = map[curr->random];
+        curr = curr->next;
+    }
+    
+    return map[head];
+}
