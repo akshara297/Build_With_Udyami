@@ -1,0 +1,34 @@
+#include <vector>
+#include <string>
+#include <unordered_map>
+
+std::vector<int> findAnagrams(std::string s, std::string p) {
+    std::vector<int> result;
+    if (s.length() < p.length()) return result;
+
+    std::unordered_map<char, int> pCount, sCount;
+    for (char c : p) pCount[c]++;
+
+    int windowSize = p.length();
+    // Initialize the first window
+    for (int i = 0; i < windowSize; i++) {
+        sCount[s[i]]++;
+    }
+
+    if (sCount == pCount) result.push_back(0);
+
+    // Slide the window across string s
+    for (int i = windowSize; i < s.length(); i++) {
+        sCount[s[i]]++;                  // Add incoming character
+        sCount[s[i - windowSize]]--;     // Remove outgoing character
+        
+        if (sCount[s[i - windowSize]] == 0) {
+            sCount.erase(s[i - windowSize]); // Keep map clean for direct comparison
+        }
+
+        if (sCount == pCount) {
+            result.push_back(i - windowSize + 1);
+        }
+    }
+    return result;
+}
