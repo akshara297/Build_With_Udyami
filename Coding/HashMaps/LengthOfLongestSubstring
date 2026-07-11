@@ -1,0 +1,20 @@
+#include <string>
+#include <unordered_map>
+#include <algorithm>
+
+int lengthOfLongestSubstring(std::string s) {
+    std::unordered_map<char, int> map; // Char -> Last seen index
+    int maxLength = 0;
+    int left = 0; // Left pointer of sliding window
+    
+    for (int right = 0; right < s.length(); right++) {
+        char c = s[right];
+        if (map.count(c)) {
+            // Move left pointer forward if the duplicate is inside the current window
+            left = std::max(left, map[c] + 1);
+        }
+        map[c] = right;
+        maxLength = std::max(maxLength, right - left + 1);
+    }
+    return maxLength;
+}
