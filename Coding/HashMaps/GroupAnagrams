@@ -1,0 +1,19 @@
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <algorithm>
+
+std::vector<std::vector<std::string>> groupAnagrams(std::vector<std::string>& strs) {
+    std::unordered_map<std::string, std::vector<std::string>> map;
+    for (const std::string& s : strs) {
+        std::string sortedStr = s;
+        std::sort(sortedStr.begin(), sortedStr.end()); // Unique key for all anagrams
+        map[sortedStr].push_back(s);
+    }
+    
+    std::vector<std::vector<std::string>> result;
+    for (auto& pair : map) {
+        result.push_back(pair.second);
+    }
+    return result;
+}
