@@ -1,0 +1,268 @@
+import csv
+from datetime import datetime
+
+class Transaction:
+    """Tracks individual financial ledger events."""
+    def __init__(self, transaction_type, amount, category, description=""):
+        self.timestamp = datetime.now()
+        self.transaction_type = transaction_type  # "Deposit" or "Withdrawal"
+        self.amount = float(amount)
+        self.category = category.strip().capitalize()
+        self.description = description
+
+    def __str__(self):
+        sign = "+" if self.transaction_type == "Deposit" else "-"
+        date_str = self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        return (f"[{date_str}] {self.category.ljust(12)} | {sign}${self.amount:.2f} "
+                f"({self.description})")
+
+
+class Account:
+    """Manages an individual bank or budget account profile."""
+    def __init__(self, account_id, account_name, initial_balance=0.0):
+        self.account_id = account_id
+        self.account_name = account_name
+        self.balance = float(initial_balance)
+        self.ledger = []
+
+    def deposit(self, amount, category, description=""):
+        if amount <= 0:
+            print("Error: Deposit amount must be positive.")
+            return False
+        
+        self.balance += amount
+        tx = Transaction("Deposit", amount, category, description)
+        self.ledger.append(tx)
+        print(f"Success: Deposited ${amount:.2f} into '{self.account_name}'.")
+        return True
+
+    def withdraw(self, amount, category, description=""):
+        if amount <= 0:
+            print("Error: Withdrawal amount must be positive.")
+            return False
+        if amount > self.balance:
+            print(f"Error: Insufficient funds in '{self.account_name}'. Current Balance: ${self.balance:.2f}")
+            return False
+        
+        self.balance -= amount
+        tx = Transaction("Withdrawal", amount, category, description)
+        self.ledger.append(tx)
+        print(f"Success: Withdrew ${amount:.2f} from '{self.account_name}'.")
+        return True
+
+    def export_statement_to_csv(self, filename=None):
+        """Exports the transaction history log into a clean standard CSV file format."""
+        if not self.ledger:
+            print(f"Warning: No transactions to export for account '{self.account_name}'.")
+            return False
+            
+        if not filename:
+            # Generate default descriptive filename safely using account nickname
+            clean_name = "".join(c for c in self.account_name if c.isalnum() or c in (' ', '_')).rstrip()
+            clean_name = clean_name.replace(' ', '_').lower()
+            filename = f"statement_{clean_name}.csv"
+
+        try:
+            with open(filename, mode='w', newline='', encoding='utf-8') as csv_file:
+                writer = csv.writer(csv_file)
+                # Write explicit headers standard for accounting tool imports
+                writer.writerow(['Timestamp', 'Transaction Type', 'Category', 'Amount ($)', 'Description'])
+                
+                for tx in self.ledger:
+                    writer.writerow([
+                        tx.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                        tx.transaction_type,
+                        tx.category,
+                        f"{tx.amount:.2f}",
+                        tx.description
+                    ])
+            print(f"🎉 Success: Account statement successfully exported to '{filename}'")
+            return True
+        except IOError as e:
+            print(f"Error: Failed to write CSV file. Details: {e}")
+            return False
+
+    def display_statement(self):
+        print(f"\n--- Statement for Account: {self.account_name} (ID: {self.account_id}) ---")
+        print(f"Current Balance: ${self.balance:.2f}")
+        print("Transaction History:")
+        if not self.ledger:
+            print("  No transactions recorded yet.")
+        else:
+            for tx in self.ledger:
+                print(f"  {tx}")
+        print("-" * 55)
+
+
+class FinanceManager:
+    """Aggregates accounts and performs top-level system reporting and budget checking."""
+    def __init__(self):
+        self.accounts = {}  # Key: account_id -> Value: Account object
+        self.budgets = {}   # Key: Category (string) -> Value: Cap Limit (float)
+
+    def create_account(self, account_id, account_name, initial_balance=0.0):
+        if account_id in self.accounts:
+            print(f"Error: Account ID '{account_id}' already exists.")
+            return
+        self.accounts[account_id] = Account(account_id, account_name, initial_balance)
+        print(f"Success: Account '{account_name}' created successfully.")
+
+    def set_budget_envelope(self, category, limit):
+        if limit < 0:
+            print("Error: Budget limit cannot be negative.")
+            return
+        cat_key = category.strip().capitalize()
+        self.budgets[cat_key] = float(limit)
+        print(f"Success: Set spending envelope for '{cat_key}' to ${limit:.2f}")
+
+    def get_category_total_spent(self, category):
+        cat_key = category.strip().capitalize()
+        total = 0.0
+        for acc in self.accounts.values():
+            for tx in acc.ledger:
+                if tx.transaction_type == "Withdrawal" and tx.category == cat_key:
+                    total += tx.amount
+        return total
+
+    def check_budget_status(self, category, incoming_expense=0.0):
+        cat_key = category.strip().capitalize()
+        if cat_key not in self.budgets:
+            return
+
+        limit = self.budgets[cat_key]
+        already_spent = self.get_category_total_spent(cat_key)
+        projected_total = already_spent + incoming_expense
+
+        if projected_total > limit:
+            print(f"\n⚠️  [BUDGET WARNING] '{cat_key}' envelope exceeded!")
+            print(f"   Limit: ${limit:.2f} | Current Spent: ${already_spent:.2f}")
+            print(f"   This transaction brings total spending to: ${projected_total:.2f} (Over by ${projected_total - limit:.2f})")
+
+    def display_budgets_summary(self):
+        print("\n=== MONTHLY BUDGET ENVELOPE SUMMARY ===")
+        if not self.budgets:
+            print("No category budget caps have been set yet.")
+            return
+            
+        for category, limit in self.budgets.items():
+            spent = self.get_category_total_spent(category)
+            remaining = limit - spent
+            status = "⚠️  OVER BUDGET" if remaining < 0 else f"Remaining: ${remaining:.2f}"
+            print(f" * {category.ljust(12)}: Spent ${spent:.2f} of ${limit:.2f} | {status}")
+        print("=======================================")
+
+    def get_net_worth(self):
+        total = sum(acc.balance for acc in self.accounts.values())
+        print(f"\n======================================")
+        print(f" TOTAL NET WORTH across all systems: ${total:.2f}")
+        print(f"======================================")
+        for acc in self.accounts.values():
+            print(f" - {acc.account_name}: ${acc.balance:.2f}")
+
+
+# --- Interactive CLI Menu ---
+def main():
+    manager = FinanceManager()
+
+    # Pre-populate base mock data
+    manager.create_account("A1", "Checking", 2000.00)
+    manager.set_budget_envelope("Groceries", 250.00)
+    
+    # Process some initial entries for testing
+    manager.accounts["A1"].withdraw(150.00, "Groceries", "Weekly shopping run")
+    manager.accounts["A1"].deposit(1200.00, "Salary", "Bi-weekly paycheck")
+    manager.accounts["A1"].withdraw(45.50, "Dining out", "Dinner with team")
+
+    while True:
+        print("\n=== PERSONAL FINANCE SYSTEM (CSV EXPORT ENABLED) ===")
+        print("1. Create New Account")
+        print("2. Record Income / Deposit")
+        print("3. Record Expense / Withdrawal")
+        print("4. Set Budget Envelope Cap")
+        print("5. View Budget Envelope Statuses")
+        print("6. View Single Account Statement")
+        print("7. Export Statement to CSV Spreadsheet")
+        print("8. View Total Net Worth Summary")
+        print("9. Exit")
+        
+        choice = input("Select an option (1-9): ").strip()
+
+        if choice == "1":
+            a_id = input("Enter unique Account ID: ").strip()
+            name = input("Enter Account Nickname: ").strip()
+            balance = input("Enter Starting Balance: ").strip()
+            if a_id and name:
+                try:
+                    manager.create_account(a_id, name, float(balance or 0))
+                except ValueError:
+                    print("Error: Balance must be a numeric value.")
+
+        elif choice == "2":
+            a_id = input("Enter Account ID: ").strip()
+            account = manager.accounts.get(a_id)
+            if not account:
+                print("Error: Account not found.")
+                continue
+            try:
+                amount = float(input("Enter Deposit Amount: $"))
+                category = input("Enter Category: ").strip()
+                desc = input("Optional Description: ").strip()
+                account.deposit(amount, category, desc)
+            except ValueError:
+                print("Error: Amount must be numerical.")
+
+        elif choice == "3":
+            a_id = input("Enter Account ID: ").strip()
+            account = manager.accounts.get(a_id)
+            if not account:
+                print("Error: Account not found.")
+                continue
+            try:
+                amount = float(input("Enter Expense Amount: $"))
+                category = input("Enter Category: ").strip()
+                desc = input("Optional Description: ").strip()
+                
+                manager.check_budget_status(category, amount)
+                account.withdraw(amount, category, desc)
+            except ValueError:
+                print("Error: Amount must be numerical.")
+
+        elif choice == "4":
+            category = input("Enter Spending Category target: ").strip()
+            try:
+                limit = float(input("Enter Maximum Monthly Budget Limit: $"))
+                manager.set_budget_envelope(category, limit)
+            except ValueError:
+                print("Error: Budget limit values must be numbers.")
+
+        elif choice == "5":
+            manager.display_budgets_summary()
+
+        elif choice == "6":
+            a_id = input("Enter Account ID: ").strip()
+            account = manager.accounts.get(a_id)
+            if account:
+                account.display_statement()
+            else:
+                print("Error: Account not found.")
+
+        elif choice == "7":
+            a_id = input("Enter Account ID to export: ").strip()
+            account = manager.accounts.get(a_id)
+            if account:
+                custom_name = input("Enter custom filename (or press Enter for default): ").strip()
+                account.export_statement_to_csv(custom_name if custom_name else None)
+            else:
+                print("Error: Account not found.")
+
+        elif choice == "8":
+            manager.get_net_worth()
+
+        elif choice == "9":
+            print("System securely closed down. Goodbye!")
+            break
+        else:
+            print("Invalid numeric entry choice selected.")
+
+if __name__ == "__main__":
+    main()
