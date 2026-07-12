@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Markdown Previewer</title>
+    
+    <!-- Marked.js Library CDN: Converts Markdown text into HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f6fa;
+            color: #2f3640;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* Split-screen container */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Common styles for both panels */
+        .panel {
+            flex: 1;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Left side: The raw input area */
+        #editor {
+            width: 100%;
+            border: none;
+            border-right: 2px solid #dcdde1;
+            resize: none;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            outline: none;
+            background-color: #ffffff;
+        }
+
+        /* Right side: The rendered preview area */
+        #preview {
+            background-color: #fbfbfb;
+        }
+
+        /* Basic styling for the preview outputs */
+        #preview h1, #preview h2 { border-bottom: 1px solid #dcdde1; padding-bottom: 5px; margin-bottom: 10px; }
+        #preview h1 { margin-top: 0; }
+        #preview h2 { margin-top: 15px; }
+        #preview p { margin-bottom: 10px; line-height: 1.6; }
+        #preview code { background-color: #f1f2f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        #preview ul, #preview ol { margin-left: 20px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <header>Markdown Previewer</header>
+
+    <div class="container">
+        <!-- Left Pane: Input -->
+        <textarea id="editor" class="panel" placeholder="Type your Markdown here..."></textarea>
+        
+        <!-- Right Pane: Output Target -->
+        <div id="preview" class="panel"></div>
+    </div>
+
+    <script>
+        // 1. Grab our DOM elements
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+
+        // 2. Default starter text so the screen isn't blank
+        const defaultText = `# Live Markdown Previewer
+
+Welcome! Type on the left, see the magic on the right.
+
+## Quick Cheat Sheet:
+*   Make text **bold** or *italic*
+*   Create inline \`code blocks\` like this
+*   Build custom lists
+
+Try clearing this text out and writing your own!`;
+
+        // 3. Set up the conversion engine function
+        function updatePreview() {
+            const rawMarkdown = editor.value;
+            // marked.parse() converts the raw text string into clean HTML string
+            preview.innerHTML = marked.parse(rawMarkdown);
+        }
+
+        // 4. Listen for real-time typing inside the textarea
+        editor.addEventListener('input', updatePreview);
+
+        // 5. Populate default text and trigger the preview immediately on page load
+        editor.value = defaultText;
+        updatePreview();
+    </script>
+
+</body>
+</html>
