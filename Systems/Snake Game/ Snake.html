@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Classic Snake Game</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #game-container {
+            text-align: center;
+        }
+        canvas {
+            border: 4px solid #333;
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+        .scoreboard {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="scoreboard">Score: <span id="score">0</span> | High Score: <span id="high-score">0</span></div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+</div>
+
+<script>
+    // --- 1. CONFIGURATION & INITIALIZATION ---
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreElement = document.getElementById("score");
+    const highScoreElement = document.getElementById("high-score");
+
+    const gridSize = 20; 
+    const tileCount = canvas.width / gridSize; 
+    
+    // Game variables
+    let snake = [];
+    let food = { x: 0, y: 0 };
+    let dx = gridSize; // Horizontal velocity (moving right initially)
+    let dy = 0;        // Vertical velocity
+    let score = 0;
+    let highScore = 0;
+    let gameInterval;
+    let gameSpeed = 100; // Milliseconds per frame
+    let changingDirection = false; // Prevents rapid double-taps causing self-collision
+
+    // Start the game
+    resetGame();
+    main();
+
+    // --- 2. THE MAIN GAME LOOP ---
+    function main() {
+        gameInterval = setInterval(function onTick() {
+            if (hasGameEnded()) {
+                clearInterval(gameInterval);
+                alert("Game Over! Press OK to restart.");
+                resetGame();
+                main();
+                return;
+            }
+
+            changingDirection = false;
+            clearCanvas();
+            drawFood();
+            moveSnake();
+            drawSnake();
+        }, gameSpeed);
+    }
+
+    // --- 3. CORE GAME MECHANICS ---
+    function moveSnake() {
+        // Create the new head based on the velocity
+        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+        snake.unshift(head); // Add new head to the front
+
+        // Check if snake ate the food
+        const hasEatenFood = snake[0].x === food.x && snake[0].y === food.y;
+        if (hasEatenFood) {
+            score += 10;
+            scoreElement.textContent = score;
+            if (score > highScore) {
+                highScore = score;
+                highScoreElement.textContent = highScore;
+            }
+            generateFood();
+        } else {
+            snake.pop(); // Remove the tail if it didn't eat food
+        }
+    }
+
+    function hasGameEnded() {
+        // Wall collisions
+        const hitLeftWall = snake[0].x < 0;
+        const hitRightWall = snake[0].x >= canvas.width;
+        const hitToptWall = snake[0].y < 0;
+        const hitBottomWall = snake[0].y >= canvas.height;
+
+        if (hitLeftWall || hitRightWall || hitToptWall || hitBottomWall) {
+            return true;
+        }
+
+        // Self collision (skip the head index 0)
+        for (let i = 4; i < snake.length; i++) {
+            if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function randomPosition() {
+        return Math.floor(Math.random() * tileCount) * gridSize;
+    }
+
+    function generateFood() {
+        food.x = randomPosition();
+        food.y = randomPosition();
+
+        // Ensure food doesn't spawn on top of the snake
+        snake.forEach(function hasSnakeEatenFood(part) {
+            const hasEaten = part.x === food.x && part.y === food.y;
+            if (hasEaten) generateFood();
+        });
+    }
+
+    function resetGame() {
+        // Initial snake setup (3 blocks long, centered horizontally)
+        snake = [
+            { x: gridSize * 5, y: gridSize * 10 },
+            { x: gridSize * 4, y: gridSize * 10 },
+            { x: gridSize * 3, y: gridSize * 10 }
+        ];
+        score = 0;
+        scoreElement.textContent = score;
+        dx = gridSize;
+        dy = 0;
+        generateFood();
+    }
+
+    // --- 4. GRAPHICS RENDERING ---
+    function clearCanvas() {
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawSnake() {
+        snake.forEach((part, index) => {
+            // Head is bright green, body is slightly darker green
+            ctx.fillStyle = index === 0 ? "#00ff00" : "#00aa00";
+            ctx.strokeStyle = "#000000";
+            
+            ctx.fillRect(part.x, part.y, gridSize, gridSize);
+            ctx.strokeRect(part.x, part.y, gridSize, gridSize);
+        });
+    }
+
+    function drawFood() {
+        ctx.fillStyle = "#ff0000"; // Red food
+        ctx.fillRect(food.x, food.y, gridSize, gridSize);
+    }
+
+    // --- 5. INPUT HANDLING ---
+    document.addEventListener("keydown", changeDirection);
+
+    function changeDirection(event) {
+        const keyPressed = event.keyCode;
+        
+        // Keycode constants
+        const LEFT_KEY = 37;
+        const UP_KEY = 38;
+        const RIGHT_KEY = 39;
+        const DOWN_KEY = 40;
+
+        // Prevent 180-degree turns into oneself
+        if (changingDirection) return;
+
+        const goingUp = dy === -gridSize;
+        const goingDown = dy === gridSize;
+        const goingRight = dx === gridSize;
+        const goingLeft = dx === -gridSize;
+
+        if (keyPressed === LEFT_KEY && !goingRight) {
+            dx = -gridSize;
+            dy = 0;
+            changingDirection = true;
+        }
+        if (keyPressed === UP_KEY && !goingDown) {
+            dx = 0;
+            dy = -gridSize;
+            changingDirection = true;
+        }
+        if (keyPressed === RIGHT_KEY && !goingLeft) {
+            dx = gridSize;
+            dy = 0;
+            changingDirection = true;
+        }
+        if (keyPressed === DOWN_KEY && !goingUp) {
+            dx = 0;
+            dy = gridSize;
+            changingDirection = true;
+        }
+    }
+</script>
+
+</body>
+</html>
