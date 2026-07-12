@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure JS 3D Raycaster Engine</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #window-container {
+            position: relative;
+            border: 4px solid #444;
+            box-shadow: 0 0 30px rgba(0,0,0,0.7);
+        }
+        canvas {
+            display: block;
+            background: #000;
+        }
+        #hud {
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
+            font-size: 18px;
+            color: #00ffcc;
+            text-shadow: 1px 1px 2px #000;
+            pointer-events: none;
+        }
+        #instructions {
+            margin-top: 15px;
+            color: #888;
+            text-align: center;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="window-container">
+    <canvas id="display" width="640" height="480"></canvas>
+    <div id="hud">AMMO: 99 | HP: 100% | SCORE: 004200</div>
+</div>
+<div id="instructions">
+    Move: W/S (Arrows Up/Down) | Strafe/Turn: A/D (Arrows Left/Right) | Action: SPACEBAR
+</div>
+
+<script>
+    // --- 1. ENGINE CONSTANTS & MAP SETUP ---
+    const canvas = document.getElementById("display");
+    const ctx = canvas.getContext("2d");
+
+    const MAP_WIDTH = 16;
+    const MAP_HEIGHT = 16;
+    const TILE_SIZE = 64;
+
+    // 0 = Empty, 1-4 = Wall Styles, 5 = Closed Door, 6 = Open Door
+    const MAP = [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+        [1,0,2,2,0,0,1,0,3,3,3,3,0,4,0,1],
+        [1,0,2,0,0,0,5,0,3,0,0,3,0,4,0,1],
+        [1,0,2,2,0,0,1,0,3,0,0,3,0,4,0,1],
+        [1,0,0,0,0,0,1,0,3,3,5,3,0,4,0,1],
+        [1,1,5,1,1,1,1,0,0,0,0,0,0,4,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,0,0,0,0,0,0,4,4,5,4,4,4,0,1],
+        [1,0,4,4,4,4,0,0,4,0,0,0,0,4,0,1],
+        [1,0,4,0,0,4,0,0,4,0,0,0,0,4,0,1],
+        [1,0,4,0,0,5,0,0,5,0,0,0,0,4,0,1],
+        [1,0,4,4,4,4,0,0,4,4,4,0,4,4,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    // --- 2. PLAYER DATA & CONTROLS ---
+    const player = {
+        x: 120,
+        y: 120,
+        angle: Math.PI / 4, // Direction looking (radians)
+        fov: Math.PI / 3,   // 60 Degrees Field of View
+        speed: 3,
+        rotSpeed: 0.04
+    };
+
+    const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+    window.addEventListener("keydown", e => { 
+        if (e.key in keys) keys[e.key] = true;
+        if (e.key === " ") interactWithDoor();
+    });
+    window.addEventListener("keyup", e => { 
+        if (e.key in keys) keys[e.key] = false; 
+    });
+
+    // --- 3. DYNAMIC PROCEDURAL TEXTURE GENERATOR ---
+    // Creates graphical bitmaps inside arrays dynamically so there are no image dependencies
+    const TEXTURE_SIZE = 64;
+    const textures = [];
+
+    function generateTextures() {
+        // Texture 1: Classic Red Brick Wall
+        const brick = ctx.createImageData(TEXTURE_SIZE, TEXTURE_SIZE);
+        for (let y = 0; y < TEXTURE_SIZE; y++) {
+            for (let x = 0; x < TEXTURE_SIZE; x++) {
+                const idx = (y * TEXTURE_SIZE + x) * 4;
+                const isMortar = (y % 16 === 0 || (x % 32 === 0 && y % 16 < 16 && y % 32 < 16) || ((x+16) % 32 === 0 && y % 32 >= 16));
+                brick.data[idx]     = isMortar ? 120 : 180 - (Math.random() * 30); // R
+                brick.data[idx + 1] = isMortar ? 120 : 40;                         // G
+                brick.data[idx + 2] = isMortar ? 120 : 40;                         // B
+                brick.data[idx + 3] = 255;                                         // A
+            }
+        }
+        textures[1] = brick;
+
+        // Texture 2: Metallic Blue Tech Wall
+        const steel = ctx.createImageData(TEXTURE_SIZE, TEXTURE_SIZE);
+        for (let y = 0; y < TEXTURE_SIZE; y++) {
+            for (let x = 0; x < TEXTURE_SIZE; x++) {
+                const idx = (y * TEXTURE_SIZE + x) * 4;
+                const border = (x < 2 || x > 61 || y < 2 || y > 61 || x === 32 || y === 32);
+                steel.data[idx]     = border ? 30  : 60;
+                steel.data[idx + 1] = border ? 70  : 110;
+                steel.data[idx + 2] = border ? 120 : 170;
+                steel.data[idx + 3] = 255;
+            }
+        }
+        textures[2] = steel;
+
+        // Texture 3: Toxic Alien Moss
+        const moss = ctx.createImageData(TEXTURE_SIZE, TEXTURE_SIZE);
+        for (let y = 0; y < TEXTURE_SIZE; y++) {
+            for (let x = 0; x < TEXTURE_SIZE; x++) {
+                const idx = (y * TEXTURE_SIZE + x) * 4;
+                const noise = Math.sin(x * 0.2) * Math.cos(y * 0.2);
+                moss.data[idx]     = noise > 0.2 ? 20  : 40;
+                moss.data[idx + 1] = noise > 0.2 ? 190 : 70;
+                moss.data[idx + 2] = noise > 0.2 ? 40  : 20;
+                moss.data[idx + 3] = 255;
+            }
+        }
+        textures[3] = moss;
+
+        // Texture 4: Dark Prison Bars/Stone
+        const stone = ctx.createImageData(TEXTURE_SIZE, TEXTURE_SIZE);
+        for (let y = 0; y < TEXTURE_SIZE; y++) {
+            for (let x = 0; x < TEXTURE_SIZE; x++) {
+                const idx = (y * TEXTURE_SIZE + x) * 4;
+                const dot = (Math.random() > 0.96);
+                stone.data[idx]     = dot ? 40 : 80;
+                stone.data[idx + 1] = dot ? 40 : 80;
+                stone.data[idx + 2] = dot ? 40 : 85;
+                stone.data[idx + 3] = 255;
+            }
+        }
+        textures[4] = stone;
+
+        // Texture 5: Futuristic Slide Door Panel
+        const door = ctx.createImageData(TEXTURE_SIZE, TEXTURE_SIZE);
+        for (let y = 0; y < TEXTURE_SIZE; y++) {
+            for (let x = 0; x < TEXTURE_SIZE; x++) {
+                const idx = (y * TEXTURE_SIZE + x) * 4;
+                const centerStrip = (y > 24 && y < 40);
+                door.data[idx]     = centerStrip ? 230 : 100;
+                door.data[idx + 1] = centerStrip ? 150 : 100;
+                door.data[idx + 2] = centerStrip ? 20  : 105;
+                door.data[idx + 3] = 255;
+            }
+        }
+        textures[5] = door;
+    }
+
+    // --- 4. VECTOR MATHEMATICS & COLLISION DETECTOR ---
+    function movePlayer() {
+        let moveX = 0;
+        let moveY = 0;
+
+        // Forward/Backward tracking vectors
+        if (keys.w || keys.ArrowUp) {
+            moveX += Math.cos(player.angle) * player.speed;
+            moveY += Math.sin(player.angle) * player.speed;
+        }
+        if (keys.s || keys.ArrowDown) {
+            moveX -= Math.cos(player.angle) * player.speed;
+            moveY -= Math.sin(player.angle) * player.speed;
+        }
+
+        // Rotational changes
+        if (keys.a || keys.ArrowLeft)  player.angle -= player.rotSpeed;
+        if (keys.d || keys.ArrowRight) player.angle += player.rotSpeed;
+
+        // Standardize orientation angle bounds
+        player.angle = (player.angle + Math.PI * 2) % (Math.PI * 2);
+
+        // Slide collision checks (allows player to gracefully slide along walls)
+        let buffer = 12; // Wall offset buffer padding
+        let checkX = player.x + moveX + (moveX > 0 ? buffer : -buffer);
+        let checkY = player.y + moveY + (moveY > 0 ? buffer : -buffer);
+
+        let mapGridX = Math.floor(checkX / TILE_SIZE);
+        let currGridX = Math.floor(player.x / TILE_SIZE);
+        let mapGridY = Math.floor(checkY / TILE_SIZE);
+        let currGridY = Math.floor(player.y / TILE_SIZE);
+
+        // Process horizontal trajectory safety
+        if (mapGridX >= 0 && mapGridX < MAP_WIDTH && MAP[currGridY][mapGridX] === 0 || MAP[currGridY][mapGridX] === 6) {
+            player.x += moveX;
+        }
+        // Process vertical trajectory safety
+        if (mapGridY >= 0 && mapGridY < MAP_HEIGHT && MAP[mapGridY][currGridX] === 0 || MAP[mapGridY][currGridX] === 6) {
+            player.y += moveY;
+        }
+    }
+
+    // --- 5. INTERACTIFS & INTERFACES (Doors Control) ---
+    function interactWithDoor() {
+        // Look slightly forward to see if facing a door frame block
+        const checkDist = 75;
+        const targetX = player.x + Math.cos(player.angle) * checkDist;
+        const targetY = player.y + Math.sin(player.angle) * checkDist;
+        
+        const gx = Math.floor(targetX / TILE_SIZE);
+        const gy = Math.floor(targetY / TILE_SIZE);
+
+        if (gx >= 0 && gx < MAP_WIDTH && gy >= 0 && gy < MAP_HEIGHT) {
+            if (MAP[gy][gx] === 5) {
+                MAP[gy][gx] = 6; // Open door
+                setTimeout(() => { 
+                    // Automatically shut door after 4 seconds if player isn't occupying it
+                    let px = Math.floor(player.x / TILE_SIZE);
+                    let py = Math.floor(player.y / TILE_SIZE);
+                    if (px !== gx || py !== gy) MAP[gy][gx] = 5;
+                }, 4000);
+            } else if (MAP[gy][gx] === 6) {
+                MAP[gy][gx] = 5; // Manually close door
+            }
+        }
+    }
+
+    // --- 6. CORE RAYCASTING MATH RENDERING PIPELINE ---
+    // Digital Differential Analysis (DDA) Algorithm implementation for line grid tracking
+    function render3DView() {
+        const numRays = canvas.width;
+        const halfHeight = canvas.height / 2;
+
+        // Draw sky horizon box colors
+        ctx.fillStyle = "#22252b";
+        ctx.fillRect(0, 0, canvas.width, halfHeight);
+        
+        // Draw floor floor colors
+        ctx.fillStyle = "#1b1c1e";
+        ctx.fillRect(0, halfHeight, canvas.width, halfHeight);
+
+        // Allocate local buffer to assemble columns at hardware velocity speeds
+        const viewBuffer = ctx.createImageData(canvas.width, canvas.height);
+
+        for (let i = 0; i < numRays; i++) {
+            // Compute structural angular paths relative to camera viewport center
+            const rayAngle = (player.angle - player.fov / 2) + (i / numRays) * player.fov;
+            
+            let sinA = Math.sin(rayAngle);
+            let cosA = Math.cos(rayAngle);
+
+            // Establish Grid tracking components 
+            let mapX = Math.floor(player.x / TILE_SIZE);
+            let mapY = Math.floor(player.y / TILE_SIZE);
+
+            // Compute DDA ray vector scaling increments
+            let deltaDistX = Math.abs(1 / cosA);
+            let deltaDistY = Math.abs(1 / sinA);
+
+            let sideDistX, sideDistY;
+            let stepX, stepY;
+
+            if (cosA < 0) {
+                stepX = -1;
+                sideDistX = (player.x - mapX * TILE_SIZE) * deltaDistX;
+            } else {
+                stepX = 1;
+                sideDistX = ((mapX + 1) * TILE_SIZE - player.x) * deltaDistX;
+            }
+
+            if (sinA < 0) {
+                stepY = -1;
+                sideDistY = (player.y - mapY * TILE_SIZE) * deltaDistY;
+            } else {
+                stepY = 1;
+                sideDistY = ((mapY + 1) * TILE_SIZE - player.y) * deltaDistY;
+            }
+
+            // DDA stepping loop sequence execution
+            let hit = false;
+            let side = 0; // 0=Horizontal wall boundary, 1=Vertical wall boundary
+            let wallType = 0;
+
+            while (!hit) {
+                if (sideDistX < sideDistY) {
+                    sideDistX += deltaDistX;
+                    mapX += stepX;
+                    side = 0;
+                } else {
+                    sideDistY += deltaDistY;
+                    mapY += stepY;
+                    side = 1;
+                }
+
+                // Verify wall impact metrics limits
+                if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) break;
+
+                if (MAP[mapY][mapX] > 0 && MAP[mapY][mapX] !== 6) { 
+                    hit = true;
+                    wallType = MAP[mapY][mapX];
+                }
+            }
+
+            // Calculate precise perpendicular visual distance (prevents fisheye lens distortion bugs)
+            let perpWallDist;
+            if (side === 0) perpWallDist = (mapX * TILE_SIZE - player.x + (1 - stepX) * TILE_SIZE / 2) / cosA;
+            else           perpWallDist = (mapY * TILE_SIZE - player.y + (1 - stepY) * TILE_SIZE / 2) / sinA;
+
+            // Prevent divide by zero errors if hugging walls closely
+            if (perpWallDist <= 0.1) perpWallDist = 0.1;
+
+            // Project architectural matrix column height adjustments
+            let wallColumnHeight = Math.floor((TILE_SIZE / perpWallDist) * 450);
+
+            // Compute draw bounds clamping zones
+            let drawStart = -wallColumnHeight / 2 + halfHeight;
+            let drawEnd = wallColumnHeight / 2 + halfHeight;
+            
+            let clampedStart = Math.max(0, Math.floor(drawStart));
+            let clampedEnd = Math.min(canvas.height - 1, Math.floor(drawEnd));
+
+            // --- TEXTURE MAPPER MATH PIPELINE ---
+            let wallX; // Precise location point where ray struck wall face
+            if (side === 0) wallX = player.y + perpWallDist * sinA;
+            else           wallX = player.x + perpWallDist * cosA;
+            wallX = (wallX / TILE_SIZE);
+            wallX -= Math.floor(wallX);
+
+            // Compute structural x pixel index mapping coordinate configuration
+            let texX = Math.floor(wallX * TEXTURE_SIZE);
+            if (side === 0 && cosA > 0) texX = TEXTURE_SIZE - texX - 1;
+            if (side === 1 && sinA < 0) texX = TEXTURE_SIZE - texX - 1;
+
+            const activeTexture = textures[wallType] || textures[1];
+
+            // Render absolute raw pixel channels directly to canvas graphics buffers
+            for (let y = clampedStart; y < clampedEnd; y++) {
+                let texY = Math.floor(((y - drawStart) / wallColumnHeight) * TEXTURE_SIZE);
+                
+                // Keep texture indexes safe within boundaries
+                texY = Math.max(0, Math.min(TEXTURE_SIZE - 1, texY));
+
+                let texIdx = (texY * TEXTURE_SIZE + texX) * 4;
+                let bufIdx = (y * canvas.width + i) * 4;
+
+                // Simple shadow effect: make vertical wall faces darker
+                let shadowFactor = side === 1 ? 0.65 : 1.0;
+                
+                // Apply atmospheric fog/depth shading (gets darker the further away it is)
+                let fog = Math.min(1.0, 350 / (perpWallDist || 1));
+
+                viewBuffer.data[bufIdx]     = activeTexture.data[texIdx]     * shadowFactor * fog;
+                viewBuffer.data[bufIdx + 1] = activeTexture.data[texIdx + 1] * shadowFactor * fog;
+                viewBuffer.data[bufIdx + 2] = activeTexture.data[texIdx + 2] * shadowFactor * fog;
+                viewBuffer.data[bufIdx + 3] = 255;
+            }
+        }
+
+        // Draw the calculated 3D frame onto the canvas screen
+        ctx.putImageData(viewBuffer, 0, 0);
+    }
+
+    // --- 7. RADAR MINIMAP OVERLAY SYSTEM ---
+    function drawMinimap() {
+        const scale = 8; // Shrink size scaling multiplier
+        const offset = 15;
+
+        // Draw structural radar grid meshes
+        for (let r = 0; r < MAP_HEIGHT; r++) {
+            for (let c = 0; c < MAP_WIDTH; c++) {
+                if (MAP[r][c] === 0 || MAP[r][c] === 6) continue; // Skip blank open blocks
+                
+                ctx.fillStyle = MAP[r][c] === 5 ? "#ffaa00" : "#555555";
+                ctx.fillRect(offset + c * scale, offset + r * scale, scale - 1, scale - 1);
+            }
+        }
+
+        // Render player positioning blip on radar screen
+        const px = offset + (player.x / TILE_SIZE) * scale;
+        const py = offset + (player.y / TILE_SIZE) * scale;
+
+        ctx.fillStyle = "#ff0066";
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Render flash visual tracking line showing which way player looks
+        ctx.strokeStyle = "#ff0066";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + Math.cos(player.angle) * 10, py + Math.sin(player.angle) * 10);
+        ctx.stroke();
+    }
+
+    // --- 8. CENTRAL RUNTIME MANAGEMENT LOOPS ---
+    function loop() {
+        movePlayer();
+        render3DView();
+        drawMinimap();
+        requestAnimationFrame(loop);
+    }
+
+    // Engine ignition setup initialization routine
+    generateTextures();
+    loop();
+</script>
+
+</body>
+</html>
