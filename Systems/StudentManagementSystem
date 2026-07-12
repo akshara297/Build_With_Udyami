@@ -1,0 +1,181 @@
+import sqlite3
+
+class StudentManagementSystem:
+    def __init__(self, db_name="student_system.db"):
+        self.db_name = db_name
+        self.init_db()
+
+    def init_db(self):
+        """Initializes the local SQLite database and creates tables if they don't exist."""
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            
+            # Create Students Table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS students (
+                    student_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    age INTEGER NOT NULL
+                )
+            ''')
+            
+            # Create Enrollments Table (Handles courses and grades)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS enrollments (
+                    student_id TEXT,
+                    course_name TEXT,
+                    grade TEXT DEFAULT 'No Grade',
+                    PRIMARY KEY (student_id, course_name),
+                    FOREIGN KEY (student_id) REFERENCES students (student_id) ON DELETE CASCADE
+                )
+            ''')
+            conn.commit()
+
+    def add_student(self):
+        print("\n--- Add New Student ---")
+        student_id = input("Enter Unique Student ID: ").strip()
+        name = input("Enter Student Name: ").strip()
+        try:
+            age = int(input("Enter Student Age: "))
+        except ValueError:
+            print("Invalid age. Please enter a number.")
+            return
+
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "INSERT INTO students (student_id, name, age) VALUES (?, ?, ?)", 
+                    (student_id, name, age)
+                )
+                conn.commit()
+            print(f"Student '{name}' added and saved to database successfully!")
+        except sqlite3.IntegrityError:
+            print("Error: A student with this ID already exists in the database.")
+
+    def enroll_student_in_course(self):
+        print("\n--- Enroll Student in Course ---")
+        student_id = input("Enter Student ID: ").strip()
+        course_name = input("Enter Course Name: ").strip()
+
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                # Verify student exists first
+                cursor.execute("SELECT name FROM students WHERE student_id = ?", (student_id,))
+                student = cursor.fetchone()
+                
+                if not student:
+                    print("Student not found.")
+                    return
+
+                cursor.execute(
+                    "INSERT INTO enrollments (student_id, course_name) VALUES (?, ?)", 
+                    (student_id, course_name)
+                )
+                conn.commit()
+            print(f"Successfully enrolled {student[0]} in {course_name}.")
+        except sqlite3.IntegrityError:
+            print(f"Student is already enrolled in {course_name}.")
+
+    def grade_student(self):
+        print("\n--- Assign Grade ---")
+        student_id = input("Enter Student ID: ").strip()
+        course_name = input("Enter Course Name: ").strip()
+        grade = input("Enter Grade (e.g., A, B, 95%): ").strip()
+
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            # Check if enrollment exists
+            cursor.execute(
+                "SELECT 1 FROM enrollments WHERE student_id = ? AND course_name = ?", 
+                (student_id, course_name)
+            )
+            if not cursor.fetchone():
+                print(f"Record not found. Is the student enrolled in {course_name}?")
+                return
+
+            cursor.execute(
+                "UPDATE enrollments SET grade = ? WHERE student_id = ? AND course_name = ?", 
+                (grade, student_id, course_name)
+            )
+            conn.commit()
+        print(f"Grade updated successfully.")
+
+    def view_student(self):
+        print("\n--- View Student Details ---")
+        student_id = input("Enter Student ID: ").strip()
+
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            # Fetch student profile
+            cursor.execute("SELECT name, age FROM students WHERE student_id = ?", (student_id,))
+            student_row = cursor.fetchone()
+            
+            if not student_row:
+                print("Student not found.")
+                return
+
+            print(f"\n--- Student Profile: {student_row[0]} ---")
+            print(f"ID: {student_id}")
+            print(f"Age: {student_row[1]}")
+            
+            # Fetch courses and grades
+            cursor.execute("SELECT course_name, grade FROM enrollments WHERE student_id = ?", (student_id,))
+            courses = cursor.fetchall()
+            
+            print("Enrolled Courses & Grades:")
+            if not courses:
+                print("  No courses enrolled yet.")
+            for course_name, grade in courses:
+                print(f"  - {course_name}: {grade}")
+
+    def list_all_students(self):
+        print("\n--- All Registered Students ---")
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT student_id, name, age FROM students")
+            students = cursor.fetchall()
+
+        if not students:
+            print("No students registered in the system yet.")
+            return
+        
+        for student_id, name, age in students:
+            print(f"ID: {student_id} | Name: {name} | Age: {age}")
+
+
+def main():
+    sms = StudentManagementSystem()
+    
+    while True:
+        print("\n==============================")
+        print("  DATABASE STUDENT SYSTEM  ")
+        print("==============================")
+        print("1. Add New Student")
+        print("2. Enroll Student in a Course")
+        print("3. Assign Grade to Student")
+        print("4. View Specific Student Details")
+        print("5. List All Students")
+        print("6. Exit")
+        
+        choice = input("\nEnter your choice (1-6): ").strip()
+        
+        if choice == '1':
+            sms.add_student()
+        elif choice == '2':
+            sms.enroll_student_in_course()
+        elif choice == '3':
+            sms.grade_student()
+        elif choice == '4':
+            sms.view_student()
+        elif choice == '5':
+            sms.list_all_students()
+        elif choice == '6':
+            print("\nExiting system. Data is safely saved. Goodbye!")
+            break
+        else:
+            print("Invalid selection. Please try again.")
+
+if __name__ == "__main__":
+    main()
