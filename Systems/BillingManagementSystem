@@ -1,0 +1,196 @@
+import sqlite3
+from datetime import datetime
+
+class BillingSystem:
+    def __init__(self, db_name="billing_system.db"):
+        self.db_name = db_name
+        self.init_db()
+
+    def init_db(self):
+        """Creates the inventory and sales tables if they don't exist."""
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            
+            # Products Table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS products (
+                    product_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    stock INTEGER NOT NULL
+                )
+            ''')
+            
+            # Sales Table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS sales (
+                    transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    product_id TEXT,
+                    quantity_sold INTEGER NOT NULL,
+                    total_price REAL NOT NULL,
+                    sale_date TEXT NOT NULL,
+                    FOREIGN KEY (product_id) REFERENCES products (product_id)
+                )
+            ''')
+            conn.commit()
+
+    def add_product(self):
+        print("\n--- Add/Update Inventory Product ---")
+        product_id = input("Enter Product ID/Barcode: ").strip()
+        name = input("Enter Product Name: ").strip()
+        try:
+            price = float(input("Enter Unit Price ($): "))
+            stock = int(input("Enter Initial Stock Quantity: "))
+        except ValueError:
+            print("Invalid price or stock format. Use numbers.")
+            return
+
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            # UPSERT: Inserts new product, or updates stock/price if ID already exists
+            cursor.execute('''
+                INSERT INTO products (product_id, name, price, stock)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(product_id) DO UPDATE SET
+                    name=excluded.name,
+                    price=excluded.price,
+                    stock=stock + excluded.stock
+            ''', (product_id, name, price, stock))
+            conn.commit()
+        print(f"Product '{name}' successfully updated in inventory.")
+
+    def generate_bill(self):
+        print("\n--- Checkout / Generate Bill ---")
+        product_id = input("Enter Product ID to purchase: ").strip()
+        
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name, price, stock FROM products WHERE product_id = ?", (product_id,))
+            product = cursor.fetchone()
+            
+            if not product:
+                print("Product not found in system.")
+                return
+                
+            name, price, stock = product
+            print(f"Item Found: {name} | Price: ${price:.2f} | Available Stock: {stock}")
+            
+            if stock == 0:
+                print("Error: This item is completely out of stock!")
+                return
+                
+            try:
+                qty = int(input(f"Enter quantity to buy (Max {stock}): "))
+            except ValueError:
+                print("Invalid quantity.")
+                return
+                
+            if qty <= 0 or qty > stock:
+                print("Invalid quantity. Cannot exceed available stock.")
+                return
+                
+            # Calculations
+            subtotal = price * qty
+            tax = subtotal * 0.08  # Simulated 8% Sales Tax
+            grand_total = subtotal + tax
+            
+            # Deduct stock & log the sale transactionally
+            cursor.execute("UPDATE products SET stock = stock - ? WHERE product_id = ?", (qty, product_id))
+            
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute('''
+                INSERT INTO sales (product_id, quantity_sold, total_price, sale_date)
+                VALUES (?, ?, ?, ?)
+            ''', (product_id, qty, grand_total, timestamp))
+            
+            conn.commit()
+            
+            # Print the printed customer receipt
+            print("\n=================================")
+            print("        CUSTOMER RECEIPT        ")
+            print("=================================")
+            print(f"Date: {timestamp}")
+            print(f"Item: {name} (x{qty})")
+            print(f"Subtotal:      ${subtotal:.2f}")
+            print(f"Tax (8%):      ${tax:.2f}")
+            print("---------------------------------")
+            print(f"GRAND TOTAL:   ${grand_total:.2f}")
+            print("=================================\n")
+
+    def check_low_stock(self):
+        print("\n--- Low Stock Alerts (Threshold: < 5 units) ---")
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT product_id, name, stock FROM products WHERE stock < 5")
+            low_stock_items = cursor.fetchall()
+            
+        if not low_stock_items:
+            print("All products are well stocked!")
+            return
+            
+        for pid, name, stock in low_stock_items:
+            status = "OUT OF STOCK" if stock == 0 else f"{stock} left"
+            print(f"[ALERT] ID: {pid} | {name} --> Status: {status}")
+
+    def view_sales_report(self):
+        print("\n--- Financial Sales Analytics ---")
+        with sqlite3.connect(self.db_name) as conn:
+            cursor = conn.cursor()
+            
+            # Calculate total revenue
+            cursor.execute("SELECT SUM(total_price), SUM(quantity_sold) FROM sales")
+            totals = cursor.fetchone()
+            
+            # Find the top-selling item name by joining sales and products
+            cursor.execute('''
+                SELECT p.name, SUM(s.quantity_sold) as total_qty
+                FROM sales s
+                JOIN products p ON s.product_id = p.product_id
+                GROUP BY s.product_id
+                ORDER BY total_qty DESC
+                LIMIT 1
+            ''')
+            top_item = cursor.fetchone()
+
+        total_revenue = totals[0] if totals[0] else 0.0
+        total_items = totals[1] if totals[1] else 0
+        
+        print(f"Total Revenue Generated: ${total_revenue:.2f}")
+        print(f"Total Individual Items Sold: {total_items}")
+        if top_item:
+            print(f"Top Selling Product: {top_item[0]} ({top_item[1]} units sold)")
+        else:
+            print("Top Selling Product: No sales data recorded yet.")
+
+
+def main():
+    system = BillingSystem()
+    
+    while True:
+        print("\n==============================")
+        print("  INVENTORY & BILLING SYSTEM  ")
+        print("==============================")
+        print("1. Add / Restock Product")
+        print("2. Sell Product (Generate Bill)")
+        print("3. Check Low Stock Alerts")
+        print("4. View Revenue & Sales Report")
+        print("5. Exit")
+        
+        choice = input("\nEnter choice (1-5): ").strip()
+        
+        if choice == '1':
+            system.add_product()
+        elif choice == '2':
+            system.generate_bill()
+        elif choice == '3':
+            system.check_low_stock()
+        elif choice == '4':
+            system.view_sales_report()
+        elif choice == '5':
+            print("\nShutting down register. Goodbye!")
+            break
+        else:
+            print("Invalid option. Please try again.")
+
+if __name__ == "__main__":
+    main()
