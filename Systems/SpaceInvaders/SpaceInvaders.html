@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Space Invaders</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #canvas-container {
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 255, 200, 0.3);
+            border: 4px solid #333;
+        }
+        canvas {
+            display: block;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+</div>
+
+<script>
+    // --- AUDIO SYSTEM (Web Audio API Engine) ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(type) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+
+        if (type === 'laser') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        } else if (type === 'explosion') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.linearRampToValueAtTime(10, now + 0.4);
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } else if (type === 'alien_hit') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.setValueAtTime(150, now + 0.05);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        }
+    }
+
+    // --- GAME ENGINE HEADQUARTERS ---
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Game states: 'START', 'PLAYING', 'GAMEOVER'
+    let gameState = 'START';
+    let score = 0;
+    let lives = 3;
+    let wave = 1;
+
+    // Input tracker
+    const keys = { Left: false, Right: false, Space: false };
+
+    // --- GAME OBJECTS ---
+    const player = {
+        x: canvas.width / 2 - 25,
+        y: canvas.height - 60,
+        width: 50,
+        height: 30,
+        speed: 6,
+        lastShot: 0,
+        shotCooldown: 300 // ms
+    };
+
+    let lasers = [];
+    let alienLasers = [];
+    let aliens = [];
+    let particles = [];
+    let stars = [];
+
+    // Initialize decorative background stars
+    for (let i = 0; i < 60; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 1,
+            speed: Math.random() * 0.5 + 0.2
+        });
+    }
+
+    // --- ALIEN SWARM GENERATOR ---
+    function initAliens() {
+        aliens = [];
+        const rows = 5;
+        const cols = 8;
+        const alienWidth = 40;
+        const alienHeight = 30;
+        const padding = 20;
+        const offsetTop = 80;
+        const offsetLeft = 100;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                // Determine alien type based on row position
+                let type = 'top';
+                let points = 30;
+                let color = '#ff0055';
+                
+                if (r >= 1 && r <= 2) {
+                    type = 'middle';
+                    points = 20;
+                    color = '#00ffcc';
+                } else if (r >= 3) {
+                    type = 'bottom';
+                    points = 10;
+                    color = '#ffff00';
+                }
+
+                aliens.push({
+                    x: offsetLeft + c * (alienWidth + padding),
+                    y: offsetTop + r * (alienHeight + padding),
+                    width: alienWidth,
+                    height: alienHeight,
+                    type: type,
+                    points: points,
+                    color: color,
+                    alive: true
+                });
+            }
+        }
+    }
+
+    let alienDirection = 1; // 1 = right, -1 = left
+    let alienSpeed = 1 + (wave * 0.2);
+    let alienStepDown = false;
+
+    // --- VISUAL PARTICLE BLENDER ---
+    function createExplosion(x, y, color) {
+        for (let i = 0; i < 15; i++) {
+            particles.push({
+                x: x,
+                y: y,
+                dx: (Math.random() - 0.5) * 6,
+                dy: (Math.random() - 0.5) * 6,
+                radius: Math.random() * 3 + 1,
+                color: color,
+                alpha: 1,
+                decay: Math.random() * 0.03 + 0.01
+            });
+        }
+    }
+
+    // --- KEYBOARD EVENT LISTENERS ---
+    window.addEventListener("keydown", (e) => {
+        if (e.code === "ArrowLeft" || e.code === "KeyA") keys.Left = true;
+        if (e.code === "ArrowRight" || e.code === "KeyD") keys.Right = true;
+        if (e.code === "Space") {
+            keys.Space = true;
+            if (gameState === 'START') {
+                audioCtx.resume();
+                gameState = 'PLAYING';
+                resetGame();
+            } else if (gameState === 'GAMEOVER') {
+                gameState = 'START';
+            }
+        }
+    });
+
+    window.addEventListener("keyup", (e) => {
+        if (e.code === "ArrowLeft" || e.code === "KeyA") keys.Left = false;
+        if (e.code === "ArrowRight" || e.code === "KeyD") keys.Right = false;
+        if (e.code === "Space") keys.Space = false;
+    });
+
+    function resetGame() {
+        score = 0;
+        lives = 3;
+        wave = 1;
+        alienSpeed = 1.2;
+        lasers = [];
+        alienLasers = [];
+        particles = [];
+        player.x = canvas.width / 2 - 25;
+        initAliens();
+    }
+
+    function nextWave() {
+        wave++;
+        alienSpeed = 1 + (wave * 0.3);
+        lasers = [];
+        alienLasers = [];
+        initAliens();
+    }
+
+    // --- AABB COLLISION BOX CHECKER ---
+    function rectIntersect(r1, r2) {
+        return !(r2.x > r1.x + r1.width ||
+                 r2.x + r2.width < r1.x ||
+                 r2.y > r1.y + r1.height ||
+                 r2.y + r2.height < r1.y);
+    }
+
+    // --- LOGIC AND MATH ENGINE ---
+    function update() {
+        // Move environmental background stars
+        stars.forEach(star => {
+            star.y += star.speed;
+            if (star.y > canvas.height) {
+                star.y = 0;
+                star.x = Math.random() * canvas.width;
+            }
+        });
+
+        if (gameState !== 'PLAYING') return;
+
+        // Player Movement Controls
+        if (keys.Left && player.x > 0) player.x -= player.speed;
+        if (keys.Right && player.x < canvas.width - player.width) player.x += player.speed;
+
+        // Player Firing System
+        if (keys.Space) {
+            const now = Date.now();
+            if (now - player.lastShot > player.shotCooldown) {
+                lasers.push({
+                    x: player.x + player.width / 2 - 2,
+                    y: player.y,
+                    width: 4,
+                    height: 15,
+                    speed: 8
+                });
+                playSound('laser');
+                player.lastShot = now;
+            }
+        }
+
+        // Update player projectiles
+        for (let i = lasers.length - 1; i >= 0; i--) {
+            lasers[i].y -= lasers[i].speed;
+            if (lasers[i].y < 0) {
+                lasers.splice(i, 1);
+            }
+        }
+
+        // Update enemy projectiles
+        for (let i = alienLasers.length - 1; i >= 0; i--) {
+            alienLasers[i].y += alienLasers[i].speed;
+            
+            // Check projectile hit on player ship
+            if (rectIntersect(alienLasers[i], player)) {
+                alienLasers.splice(i, 1);
+                lives--;
+                createExplosion(player.x + player.width/2, player.y + player.height/2, '#ff3300');
+                playSound('explosion');
+                if (lives <= 0) {
+                    gameState = 'GAMEOVER';
+                }
+                continue;
+            }
+
+            if (alienLasers[i].y > canvas.height) {
+                alienLasers.splice(i, 1);
+            }
+        }
+
+        // Update particle dynamics
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].x += particles[i].dx;
+            particles[i].y += particles[i].dy;
+            particles[i].alpha -= particles[i].decay;
+            if (particles[i].alpha <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+
+        // Update Invading Fleet
+        let edgeHit = false;
+        let activeAliensCount = 0;
+
+        aliens.forEach(alien => {
+            if (!alien.alive) return;
+            activeAliensCount++;
+
+            // Shift position coordinates
+            alien.x += alienSpeed * alienDirection;
+
+            // Wall check boundary
+            if (alien.x + alien.width > canvas.width - 20 || alien.x < 20) {
+                edgeHit = true;
+            }
+
+            // Lose condition: aliens land at player terminal base line
+            if (alien.y + alien.height >= player.y) {
+                gameState = 'GAMEOVER';
+            }
+        });
+
+        // Trigger next level loop if field is cleared
+        if (activeAliensCount === 0) {
+            nextWave();
+            return;
+        }
+
+        // Handle structural row drops when hits bounds
+        if (edgeHit) {
+            alienDirection *= -1;
+            aliens.forEach(alien => {
+                if (alien.alive) alien.y += 20;
+            });
+        }
+
+        // Dynamic Alien combat firing logic
+        aliens.forEach(alien => {
+            if (!alien.alive) return;
+
+            // Random fire probability based on alive cluster sizes
+            if (Math.random() < 0.0007 * wave) {
+                alienLasers.push({
+                    x: alien.x + alien.width / 2 - 2,
+                    y: alien.y + alien.height,
+                    width: 4,
+                    height: 12,
+                    speed: 4 + (wave * 0.2)
+                });
+            }
+
+            // Cross reference collision loops: Player laser meets alien mesh
+            for (let i = lasers.length - 1; i >= 0; i--) {
+                if (rectIntersect(lasers[i], alien)) {
+                    lasers.splice(i, 1);
+                    alien.alive = false;
+                    score += alien.points;
+                    createExplosion(alien.x + alien.width / 2, alien.y + alien.height / 2, alien.color);
+                    playSound('alien_hit');
+                    break;
+                }
+            }
+        });
+    }
+
+    // --- GRAPHICS RENDERING RETINA CONTROLLER ---
+    function draw() {
+        // Clear screen framework background canvas
+        ctx.fillStyle = "#050505";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw structural starry canvas depth elements
+        ctx.fillStyle = "#ffffff";
+        stars.forEach(star => {
+            ctx.globalAlpha = star.speed * 1.5;
+            ctx.fillRect(star.x, star.y, star.size, star.size);
+        });
+        ctx.globalAlpha = 1.0; // reset transparency settings
+
+        if (gameState === 'START') {
+            ctx.textAlign = "center";
+            ctx.fillStyle = "#00ffcc";
+            ctx.font = "bold 40px 'Courier New'";
+            ctx.fillText("SPACE INVADERS", canvas.width / 2, canvas.height / 2 - 50);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "18px 'Courier New'";
+            ctx.fillText("Press SPACEBAR to Start Game Engine", canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillStyle = "#888888";
+            ctx.fillText("Controls: A / D or Arrows to Move | Space to Fire", canvas.width / 2, canvas.height / 2 + 60);
+
+        } else if (gameState === 'PLAYING' || gameState === 'GAMEOVER') {
+            
+            // Draw Player Ship Geometry
+            ctx.fillStyle = "#00ff66";
+            ctx.fillRect(player.x, player.y + 10, player.width, player.height - 10);
+            ctx.fillRect(player.x + player.width / 2 - 5, player.y, 10, 10); // Gun barrel mount
+
+            // Draw Active Aliens Fleet
+            aliens.forEach(alien => {
+                if (!alien.alive) return;
+                ctx.fillStyle = alien.color;
+                ctx.fillRect(alien.x, alien.y, alien.width, alien.height);
+                
+                // Classic retro antenna/eye dots drawn via primitive block canvas cuts
+                ctx.fillStyle = "#000000";
+                ctx.fillRect(alien.x + 8, alien.y + 8, 6, 6);
+                ctx.fillRect(alien.x + alien.width - 14, alien.y + 8, 6, 6);
+            });
+
+            // Draw Lasers 
+            ctx.fillStyle = "#00ffff";
+            lasers.forEach(laser => {
+                ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
+            });
+
+            // Draw Alien Lasers
+            ctx.fillStyle = "#ff3300";
+            alienLasers.forEach(laser => {
+                ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
+            });
+
+            // Draw Splinter Particles
+            particles.forEach(p => {
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Draw Dashboard HUD Display
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 18px 'Courier New'";
+            ctx.textAlign = "left";
+            ctx.fillText(`SCORE: ${score}`, 20, 35);
+            ctx.fillText(`WAVE: ${wave}`, canvas.width / 2 - 40, 35);
+            ctx.textAlign = "right";
+            ctx.fillText(`LIVES: ${"♥ ".repeat(lives)}`, canvas.width - 20, 35);
+
+            // Functional Green Baseline Barrier
+            ctx.strokeStyle = "#00ff66";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - 20);
+            ctx.lineTo(canvas.width, canvas.height - 20);
+            ctx.stroke();
+
+            if (gameState === 'GAMEOVER') {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#ff3300";
+                ctx.font = "bold 50px 'Courier New'";
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
+                
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "20px 'Courier New'";
+                ctx.fillText(`Final Core Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+                ctx.font = "16px 'Courier New'";
+                ctx.fillText("Press SPACEBAR to Return to Main Menu", canvas.width / 2, canvas.height / 2 + 70);
+            }
+        }
+    }
+
+    // --- CENTRAL TICK LOOP TIME DRIVER ---
+    function gameLoop() {
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Launch Engine Ignition Sequence
+    gameLoop();
+</script>
+
+</body>
+</html>
