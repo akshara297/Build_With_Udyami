@@ -1,0 +1,166 @@
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def reverseList(head: ListNode) -> ListNode:
+    prev = None
+    curr = head
+    while curr:
+        nxt = curr.next
+        curr.next = prev
+        prev = curr
+        curr = nxt
+    return prev
+
+def hasCycle(head: ListNode) -> bool:
+    slow, fast = head, head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast:
+            return True
+    return False
+
+
+
+def mergeTwoLists(list1: ListNode, list2: ListNode) -> ListNode:
+    dummy = ListNode()
+    tail = dummy
+    while list1 and list2:
+        if list1.val < list2.val:
+            tail.next = list1
+            list1 = list1.next
+        else:
+            tail.next = list2
+            list2 = list2.next
+        tail = tail.next
+    tail.next = list1 if list1 else list2
+    return dummy.next
+
+
+
+
+def removeNthFromEnd(head: ListNode, n: int) -> ListNode:
+    dummy = ListNode(0, head)
+    left = dummy
+    right = head
+    
+    for _ in range(n):
+        right = right.next
+        
+    while right:
+        left = left.next
+        right = right.next
+        
+    left.next = left.next.next
+    return dummy.next
+
+
+
+def middleNode(head: ListNode) -> ListNode:
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+    return slow
+
+
+
+
+def getIntersectionNode(headA: ListNode, headB: ListNode) -> ListNode:
+    if not headA or not headB:
+        return None
+    pA, pB = headA, headB
+    while pA != pB:
+        pA = pA.next if pA else headB
+        pB = pB.next if pB else headA
+    return pA
+
+
+
+
+def isPalindrome(head: ListNode) -> bool:
+    fast = slow = head
+    while fast and fast.next:
+        fast = fast.next.next
+        slow = slow.next
+        
+    prev = None
+    while slow:
+        nxt = slow.next
+        slow.next = prev
+        prev = slow
+        slow = nxt
+        
+    left, right = head, prev
+    while right:
+        if left.val != right.val:
+            return False
+        left = left.next
+        right = right.next
+    return True
+
+
+
+
+
+
+
+
+
+def detectCycle(head: ListNode) -> ListNode:
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast:
+            slow = head
+            while slow != fast:
+                slow = slow.next
+                fast = fast.next
+            return slow
+    return None
+
+
+
+
+
+def oddEvenList(head: ListNode) -> ListNode:
+    if not head: return None
+    odd = head
+    even = head.next
+    evenHead = even
+    
+    while even and even.next:
+        odd.next = even.next
+        odd = odd.next
+        even.next = odd.next
+        even = even.next
+        
+    odd.next = evenHead
+    return head
+
+
+
+
+
+import heapq
+
+def mergeKLists(lists: list[ListNode]) -> ListNode:
+    heap = []
+    for i, l in enumerate(lists):
+        if l:
+            heapq.heappush(heap, (l.val, i, l))
+            
+    dummy = ListNode()
+    curr = dummy
+    
+    while heap:
+        val, i, node = heapq.heappop(heap)
+        curr.next = node
+        curr = curr.next
+        if node.next:
+            heapq.heappush(heap, (node.next.val, i, node.next))
+            
+    return dummy.next
