@@ -1,0 +1,104 @@
+import json
+import os
+
+# The name of the file where data will be stored permanently
+FILE_NAME = "expenses.json"
+
+# This list will hold our expense dictionaries
+expenses = []
+
+def load_expenses():
+    """Loads expenses from a JSON file if it exists."""
+    global expenses
+    # Check if the file exists so we don't get an error trying to read a missing file
+    if os.path.exists(FILE_NAME):
+        try:
+            with open(FILE_NAME, "r") as file:
+                expenses = json.load(file)
+                print(f"✓ Loaded {len(expenses)} saved expenses.")
+        except json.JSONDecodeError:
+            print("⚠️ Warning: Could not read the save file. Starting fresh.")
+            expenses = []
+    else:
+        expenses = []
+
+def save_expenses():
+    """Saves the current list of expenses to the JSON file."""
+    try:
+        with open(FILE_NAME, "w") as file:
+            # indent=4 makes the JSON file human-readable if you open it in a text editor
+            json.dump(expenses, file, indent=4)
+    except IOError:
+        print("⚠️ Error: Could not save data to disk.")
+
+def add_expense():
+    """Prompts user for details, adds to list, and saves to file."""
+    try:
+        amount = float(input("\nEnter amount spent ($): "))
+        if amount <= 0:
+            print("Please enter an amount greater than 0.")
+            return
+            
+        category = input("Enter category (e.g., Food, Transport, Rent): ").strip().capitalize()
+        description = input("Enter a short description: ").strip()
+        
+        expense = {
+            "amount": amount,
+            "category": category,
+            "description": description
+        }
+        
+        expenses.append(expense)
+        
+        # Save changes to the file immediately!
+        save_expenses()
+        print(f"✓ Added and saved: ${amount:.2f} for {category} successfully!")
+        
+    except ValueError:
+        print("Invalid input. Please enter a valid number for the amount.")
+
+def view_expenses():
+    """Displays all recorded expenses."""
+    if not expenses:
+        print("\nNo expenses recorded yet!")
+        return
+        
+    print("\n--- All Expenses ---")
+    for index, exp in enumerate(expenses, 1):
+        print(f"{index}. ${exp['amount']:.2f} | Category: {exp['category']} | Details: {exp['description']}")
+
+def show_total():
+    """Calculates and prints the sum of all expenses."""
+    total = sum(exp['amount'] for exp in expenses)
+    print(f"\n=======================")
+    print(f"Total Spent: ${total:.2f}")
+    print(f"=======================")
+
+def main():
+    """Main program loop."""
+    # Load any existing data BEFORE entering the user menu loop
+    load_expenses()
+    
+    while True:
+        print("\n*** EXPENSE TRACKER MENU ***")
+        print("1. Add an Expense")
+        print("2. View All Expenses")
+        print("3. Show Total Spent")
+        print("4. Exit")
+        
+        choice = input("Choose an option (1-4): ").strip()
+        
+        if choice == "1":
+            add_expense()
+        elif choice == "2":
+            view_expenses()
+        elif choice == "3":
+            show_total()
+        elif choice == "4":
+            print("\nGoodbye! Happy budgeting!")
+            break
+        else:
+            print("Invalid choice. Please pick a number from 1 to 4.")
+
+if __name__ == "__main__":
+    main()
