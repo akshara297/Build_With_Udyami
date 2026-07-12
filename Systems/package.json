@@ -1,31 +1,42 @@
 {
-  "name": "org.apache.cordova.hellocordova",
-  "displayName": "Hello Cordova",
-  "version": "1.0.0",
-  "description": "A sample Apache Cordova application that responds to the deviceready event.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "name": "content-type",
+  "description": "Create and parse HTTP Content-Type header",
+  "version": "1.0.5",
+  "author": "Douglas Christopher Wilson <doug@somethingdoug.com>",
+  "license": "MIT",
   "keywords": [
-    "ecosystem:cordova"
+    "content-type",
+    "http",
+    "req",
+    "res",
+    "rfc7231"
   ],
-  "author": "Apache Cordova Team",
-  "license": "Apache-2.0",
+  "repository": "jshttp/content-type",
   "devDependencies": {
-    "cordova-android": "^15.0.0",
-    "cordova-browser": "^7.0.0",
-    "cordova-plugin-android-permissions": "^1.1.5",
-    "cordova-plugin-contacts": "^3.0.1"
+    "deep-equal": "1.0.1",
+    "eslint": "8.32.0",
+    "eslint-config-standard": "15.0.1",
+    "eslint-plugin-import": "2.27.5",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-promise": "6.1.1",
+    "eslint-plugin-standard": "4.1.0",
+    "mocha": "10.2.0",
+    "nyc": "15.1.0"
   },
-  "cordova": {
-    "platforms": [
-      "android",
-      "browser"
-    ],
-    "plugins": {
-      "cordova-plugin-contacts": {},
-      "cordova-plugin-android-permissions": {}
-    }
+  "files": [
+    "LICENSE",
+    "HISTORY.md",
+    "README.md",
+    "index.js"
+  ],
+  "engines": {
+    "node": ">= 0.6"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "mocha --reporter spec --check-leaks --bail test/",
+    "test-ci": "nyc --reporter=lcovonly --reporter=text npm test",
+    "test-cov": "nyc --reporter=html --reporter=text npm test",
+    "version": "node scripts/version-history.js && git add HISTORY.md"
   }
 }
