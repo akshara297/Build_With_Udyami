@@ -1,0 +1,1060 @@
+from collections import defaultdict
+
+# =============================================================================
+# DAY 1: Two-Pointer Techniques
+# =============================================================================
+class Day1TwoPointers:
+    
+    # 1. Reverse a string in-place
+    # Time Complexity: O(N) | Space Complexity: O(1)
+    def reverseString(self, s: list[str]) -> None:
+        left, right = 0, len(s) - 1
+        while left < right:
+            s[left], s[right] = s[right], s[left]
+            left += 1
+            right -= 1
+
+    # 2. Move all zeroes to the end
+    # Time Complexity: O(N) | Space Complexity: O(1)
+    def moveZeroes(self, nums: list[int]) -> None:
+        insert_pos = 0
+        for num in nums:
+            if num != 0:
+                nums[insert_pos] = num
+                insert_pos += 1
+        
+        while insert_pos < len(nums):
+            nums[insert_pos] = 0
+            insert_pos += 1
+
+    # 3. Two Sum II - Input array is sorted
+    # Time Complexity: O(N) | Space Complexity: O(1)
+    def twoSum(self, numbers: list[int], target: int) -> list[int]:
+        left, right = 0, len(numbers) - 1
+        while left < right:
+            current_sum = numbers[left] + numbers[right]
+            if current_sum == target:
+                return [left + 1, right + 1] # 1-indexed output
+            elif current_sum < target:
+                left += 1
+            else:
+                right -= 1
+        return []
+
+    # 4. 3Sum
+    # Time Complexity: O(N^2) | Space Complexity: O(N) for sorting internal buffer
+    def threeSum(self, nums: list[int]) -> list[list[int]]:
+        nums.sort()
+        result = []
+        n = len(nums)
+        
+        for i in range(n - 2):
+            # Skip duplicates for the first element
+            if i > 0 and nums[i] == nums[i - 1]:
+                continue
+                
+            left, right = i + 1, n - 1
+            while left < right:
+                total = nums[i] + nums[left] + nums[right]
+                if total == 0:
+                    result.append([nums[i], nums[left], nums[right]])
+                    # Skip duplicate values for the second pointer
+                    while left < right and nums[left] == nums[left + 1]:
+                        left += 1
+                    # Skip duplicate values for the third pointer
+                    while left < right and nums[right] == nums[right - 1]:
+                        right -= 1
+                    left += 1
+                    right -= 1
+                elif total < 0:
+                    left += 1
+                else:
+                    right -= 1
+        return result
+
+
+# =============================================================================
+# DAY 2: Sliding Window Pattern
+# =============================================================================
+class Day2SlidingWindow:
+
+    # 1. Maximum sum subarray of size K
+    # Time Complexity: O(N) | Space Complexity: O(1)
+    def maxSumSubarray(self, nums: list[int], k: int) -> int:
+        if not nums or k > len(nums):
+            return 0
+            
+        window_sum = sum(nums[:k])
+        max_sum = window_sum
+        
+        for i in range(k, len(nums)):
+            window_sum += nums[i] - nums[i - k]
+            max_sum = max(max_sum, window_sum)
+            
+        return max_sum
+
+    # 2. Longest substring without repeating characters
+    # Time Complexity: O(N) | Space Complexity: O(min(N, M)) where M is alphabet size
+    def lengthOfLongestSubstring(self, s: str) -> int:
+        char_map = {}
+        left = 0
+        max_len = 0
+        
+        for right, char in enumerate(s):
+            if char in char_map and char_map[char] >= left:
+                left = char_map[char] + 1
+            char_map[char] = right
+            max_len = max(max_len, right - left + 1)
+            
+        return max_len
+
+    # 3. Minimum size subarray sum (Dynamic window)
+    # Time Complexity: O(N) | Space Complexity: O(1)
+    def minSubArrayLen(self, target: int, nums: list[int]) -> int:
+        left = 0
+        current_sum = 0
+        min_len = float('inf')
+        
+        for right, num in enumerate(nums):
+            current_sum += num
+            while current_sum >= target:
+                min_len = min(min_len, right - left + 1)
+                current_sum -= nums[left]
+                left += 1
+                
+        return min_len if min_len != float('inf') else 0
+
+    # 4. Subarrays with K different integers
+    # Time Complexity: O(N) | Space Complexity: O(N)
+    def subarraysWithKDistinct(self, nums: list[int], k: int) -> int:
+        return self.atMostK(nums, k) - self.atMostK(nums, k - 1)
+        
+    def atMostK(self, nums: list[int], k: int) -> int:
+        freq = defaultdict(int)
+        left = 0
+        count = 0
+        
+        for right, num in enumerate(nums):
+            if freq[num] == 0:
+                k -= 1
+            freq[num] += 1
+            
+            while k < 0:
+                freq[nums[left]] -= 1
+                if freq[nums[left]] == 0:
+                    k += 1
+                left += 1
+            count += (right - left + 1)
+        return count
+
+
+# =============================================================================
+# DAY 3: Prefix Sum & Kadane’s Algorithm
+# =============================================================================
+class Day3PrefixSumKadane:
+
+    # 1. Find pivot index
+    # Time Complexity: O(N) | Space Complexity: O(1)
+    def pivotIndex(self, nums: list[int]) -> int:
+        total_sum = sum(nums)
+        left_sum = 0
+        
+        for i, num in enumerate(nums):
+            if left_sum == (total_sum - left_sum - num):
+                return i
+            left_sum += num
+        return -1
+
+    # 2. Maximum Subarray Sum (Kadane's Algorithm)
+    # Time Complexity: O(N) | Space Complexity: O(1)
+    def maxSubArray(self, nums: list[int]) -> int:
+        max_so_far = nums[0]
+        current_max = nums[0]
+        
+        for i in range(1, len(nums)):
+            current_max = max(nums[i], current_max + nums[i])
+            max_so_far = max(max_so_far, current_max)
+            
+        return max_so_far
+
+    # 3. Product of array except self
+    # Time Complexity: O(N) | Space Complexity: O(1) output array optimization
+    def productExceptSelf(self, nums: list[int]) -> list[int]:
+        n = len(nums)
+        ans = [1] * n
+        
+        # prefix computation passes from left to right
+        for i in range(1, n):
+            ans[i] = ans[i - 1] * nums[i - 1]
+            
+        # suffix computation passes from right to left dynamically
+        right_prod = 1
+        for i in range(n - 1, -1, -1):
+            ans[i] *= right_prod
+            right_prod *= nums[i]
+            
+        return ans
+
+    # 4. Subarray sum equals K (Prefix sum + Hash map)
+    # Time Complexity: O(N) | Space Complexity: O(N)
+    def subarraySum(self, nums: list[int], k: int) -> int:
+        prefix_counts = {0: 1} # Base case configuration
+        current_sum = 0
+        count = 0
+        
+        for num in nums:
+            current_sum += num
+            # Check if matching remainder context exists
+            if (current_sum - k) in prefix_counts:
+                count += prefix_counts[current_sum - k]
+            prefix_counts[current_sum] = prefix_counts.get(current_sum, 0) + 1
+            
+        return count
+
+
+# =============================================================================
+# Execution Verification Block
+# =============================================================================
+if __name__ == "__main__":
+    d1 = Day1TwoPointers()
+    d2 = Day2SlidingWindow()
+    d3 = Day3PrefixSumKadane()
+    
+    print("--- Day 1 Tests ---")
+    s = ["h","e","l","l","o"]
+    d1.reverseString(s)
+    print(f"1. Reverse String: {s}")
+    nums1 = [0,1,0,3,12]
+    d1.moveZeroes(nums1)
+    print(f"2. Move Zeroes: {nums1}")
+    print(f"3. Two Sum II: {d1.twoSum([2,7,11,15], 9)}")
+    print(f"4. 3Sum: {d1.threeSum([-1,0,1,2,-1,-4])}")
+    
+    print("\n--- Day 2 Tests ---")
+    print(f"1. Max Subarray K: {d2.maxSumSubarray([2,1,5,1,3,2], 3)}")
+    print(f"2. Longest Substring: {d2.lengthOfLongestSubstring('abcabcbb')}")
+    print(f"3. Min Size Subarray: {d2.minSubArrayLen(7, [2,3,1,2,4,3])}")
+    print(f"4. Subarrays with K Distinct: {d2.subarraysWithKDistinct([1,2,1,2,3], 2)}")
+    
+    print("\n--- Day 3 Tests ---")
+    print(f"1. Pivot Index: {d3.pivotIndex([1,7,3,6,5,6])}")
+    print(f"2. Kadane's Max: {d3.maxSubArray([-2,1,-3,4,-1,2,1,-5,4])}")
+    print(f"3. Product Except Self: {d3.productExceptSelf([1,2,3,4])}")
+    print(f"4. Subarray Sum Equals K: {d3.subarraySum([1,1,1], 2)}")
+
+import heapq
+from collections import Counter
+
+class AdvancedWindowHeapSolutions:
+    
+    # =========================================================================
+    # 1. Subarrays with K Different Integers (Sliding Window Helper)
+    # Time Complexity: O(N) | Space Complexity: O(N)
+    # =========================================================================
+    def subarraysWithKDistinct(self, nums: list[int], k: int) -> int:
+        # The Core Mathematical Insight: Exactly(K) = AtMost(K) - AtMost(K - 1)
+        return self.atMostK(nums, k) - self.atMostK(nums, k - 1)
+        
+    def atMostK(self, nums: list[int], k: int) -> int:
+        freq = {}
+        left = 0
+        count = 0
+        
+        for right, num in enumerate(nums):
+            freq[num] = freq.get(num, 0) + 1
+            
+            # If our window has more than K distinct elements, shrink it from the left
+            while len(freq) > k:
+                freq[nums[left]] -= 1
+                if freq[nums[left]] == 0:
+                    del freq[nums[left]]
+                left += 1
+                
+            # The number of valid subarrays ending at 'right' is equal to the window size
+            count += (right - left + 1)
+            
+        return count
+
+    # =========================================================================
+    # 2. Minimum Window Substring (Two Pointers / Sliding Window)
+    # Time Complexity: O(N + M) | Space Complexity: O(M) where N=len(s), M=len(t)
+    # =========================================================================
+    def minWindow(self, s: str, t: str) -> str:
+        if not s or not t:
+            return ""
+            
+        target_counts = Counter(t)
+        window_counts = {}
+        
+        # 'required' is the number of unique characters in t that must match in frequency
+        required = len(target_counts)
+        # 'formed' tracks how many unique characters match the target frequencies so far
+        formed = 0
+        
+        left = 0
+        # Stores the tuple: (window_length, left_idx, right_idx)
+        ans = (float('inf'), None, None)
+        
+        for right, char in enumerate(s):
+            window_counts[char] = window_counts.get(char, 0) + 1
+            
+            # If the frequency of the current character matches its target frequency
+            if char in target_counts and window_counts[char] == target_counts[char]:
+                formed += 1
+                
+            # Contract the window from the left as long as the constraints are satisfied
+            while left <= right and formed == required:
+                char_left = s[left]
+                
+                # Update our minimal window result tracking boundaries
+                if right - left + 1 < ans[0]:
+                    ans = (right - left + 1, left, right)
+                    
+                window_counts[char_left] -= 1
+                if char_left in target_counts and window_counts[char_left] < target_counts[char_left]:
+                    formed -= 1
+                    
+                left += 1
+                
+        return "" if ans[0] == float('inf') else s[ans[1]:ans[2] + 1]
+
+    # =========================================================================
+    # 4. Course Schedule III (Greedy Choice Property + Max Heap Eviction)
+    # Time Complexity: O(N log N) | Space Complexity: O(N)
+    # =========================================================================
+    def scheduleCourse(self, courses: list[list[int]]) -> int:
+        # Step 1: Sort courses strictly by their deadlines
+        courses.sort(key=lambda x: x[1])
+        
+        max_heap = [] # Stores course durations. Inverted to act as a Max-Heap in Python.
+        total_time = 0
+        
+        for duration, deadline in courses:
+            # Add course to the current schedule tracking timeline
+            total_time += duration
+            heapq.heappush(max_heap, -duration)
+            
+            # If the cumulative timeline breaks the current deadline constraint,
+            # retroactively evict the longest course taken so far to free up maximum buffer space.
+            if total_time > deadline:
+                longest_duration = -heapq.heappop(max_heap)
+                total_time -= longest_duration
+                
+        return len(max_heap)
+
+
+# =========================================================================
+# 3. Find Median from Data Stream (Balanced Two Heaps Structure)
+# Time Complexity: Add: O(log N), Find: O(1) | Space Complexity: O(N)
+# =========================================================================
+class MedianFinder:
+
+    def __init__(self):
+        # max_heap stores the smaller half of numbers (inverted to handle python min-heap natively)
+        self.max_heap = []
+        # min_heap stores the larger half of numbers
+        self.min_heap = []
+
+    def addNum(self, num: int) -> None:
+        # Push to max_heap first, then move the highest of the lower group to min_heap
+        heapq.heappush(self.max_heap, -num)
+        heapq.heappush(self.min_heap, -heapq.heappop(self.max_heap))
+        
+        # Maintain structural balance: max_heap can have at most 1 more element than min_heap
+        if len(self.max_heap) < len(self.min_heap):
+            heapq.heappush(self.max_heap, -heapq.heappop(self.min_heap))
+
+    def findMedian(self) -> float:
+        if len(self.max_heap) > len(self.min_heap):
+            return float(-self.max_heap[0])
+        # If balanced evenly, return the average of the roots of both heaps
+        return (-self.max_heap[0] + self.min_heap[0]) / 2.0
+
+
+# =============================================================================
+# Example Driver Execution
+# =============================================================================
+if __name__ == "__main__":
+    solver = AdvancedWindowHeapSolutions()
+    
+    print("--- 1. Subarrays with K Different Integers ---")
+    nums = [1, 2, 1, 2, 3]
+    k = 2
+    print(f"Good Subarrays count: {solver.subarraysWithKDistinct(nums, k)}")  # Expected: 7
+    
+    print("\n--- 2. Minimum Window Substring ---")
+    S, T = "ADOBECODEBANC", "ABC"
+    print(f"Minimum Window Substring: '{solver.minWindow(S, T)}'")  # Expected: "BANC"
+    
+    print("\n--- 3. Find Median from Data Stream ---")
+    mf = MedianFinder()
+    mf.addNum(1)
+    mf.addNum(2)
+    print(f"Median after [1, 2]: {mf.findMedian()}")  # Expected: 1.5
+    mf.addNum(3)
+    print(f"Median after [1, 2, 3]: {mf.findMedian()}")  # Expected: 2.0
+    
+    print("\n--- 4. Course Schedule III ---")
+    # courses format: [duration, deadline]
+    courses = [[100, 200], [200, 1300], [1000, 1250], [2000, 3200]]
+    print(f"Max courses taken: {solver.scheduleCourse(courses)}")  # Expected: 3
+
+class AdvancedStringBitSolutions:
+    
+    # =========================================================================
+    # 1. Shortest Palindrome (KMP / Longest Prefix-Suffix Array)
+    # Time Complexity: O(N) | Space Complexity: O(N)
+    # =========================================================================
+    def shortestPalindrome(self, s: str) -> str:
+        if not s:
+            return s
+            
+        # Create a combined string: s + special_sentinel + reverse(s)
+        # The sentinel '#' ensures our KMP table doesn't match beyond the boundaries of s
+        rev_s = s[::-1]
+        combined = s + '#' + rev_s
+        
+        # Build KMP Lookup Table (Partial Match / LPS Array)
+        lps = [0] * len(combined)
+        for i in range(1, len(combined)):
+            j = lps[i - 1]
+            while j > 0 and combined[i] != combined[j]:
+                j = lps[j - 1]
+            if combined[i] == combined[j]:
+                j += 1
+            lps[i] = j
+            
+        # lps[-1] now gives us the length of the longest palindromic prefix in s
+        longest_palindrome_prefix_len = lps[-1]
+        
+        # Take the non-palindromic suffix, reverse it, and attach it to the front
+        remaining_suffix = s[longest_palindrome_prefix_len:]
+        return remaining_suffix[::-1] + s
+
+    # =========================================================================
+    # 2. Number of Valid Words for Each Puzzle (Bitmasking + Subset Iteration)
+    # Time Complexity: O(Words * L + Puzzles * 2^7) | Space Complexity: O(Words)
+    # =========================================================================
+    def findNumOfValidWords(self, words: list[str], puzzles: list[str]) -> list[int]:
+        # Frequency map to store occurrences of each unique word bitmask
+        mask_counts = {}
+        
+        for word in words:
+            mask = 0
+            for char in word:
+                mask |= (1 << (ord(char) - ord('a')))
+                
+            # A puzzle only has 7 unique characters. Any word with more than 7 
+            # unique characters can never be formed by a puzzle.
+            if bin(mask).count('1') <= 7:
+                mask_counts[mask] = mask_counts.get(mask, 0) + 1
+                
+        results = []
+        
+        for puzzle in puzzles:
+            # Generate the baseline bitmask for the entire puzzle
+            puzzle_mask = 0
+            for char in puzzle:
+                puzzle_mask |= (1 << (ord(char) - ord('a')))
+                
+            # The first character of the puzzle must be present in the word
+            first_char_mask = 1 << (ord(puzzle[0]) - ord('a'))
+            
+            # Optimized Bitwise Subset Iteration technique:
+            # Loop through all subsets of the puzzle_mask
+            sub_mask = puzzle_mask
+            valid_count = 0
+            
+            while sub_mask > 0:
+                # Check if the current subset contains the puzzle's first character
+                if (sub_mask & first_char_mask) == first_char_mask:
+                    if sub_mask in mask_counts:
+                        valid_count += mask_counts[sub_mask]
+                        
+                # Standard bitwise trick to extract the next sub-mask pattern smoothly
+                sub_mask = (sub_mask - 1) & puzzle_mask
+                
+            results.append(valid_count)
+            
+        return results
+
+    # =========================================================================
+    # 3. Regular Expression Matching (2D Top-Down Memoized DP)
+    # Time Complexity: O(T * P) | Space Complexity: O(T * P) where T=text, P=pattern
+    # =========================================================================
+    def isMatch(self, text: str, pattern: str) -> bool:
+        memo = {}
+        
+        def dp(i: int, j: int) -> bool:
+            # Check cache
+            if (i, j) in memo:
+                return memo[(i, j)]
+                
+            # Base Case: If we reach the end of the pattern, text must also be exhausted
+            if j == len(pattern):
+                return i == len(text)
+                
+            # Check if current characters match, taking '.' wildcard into account
+            first_match = (i < len(text) and pattern[j] in {text[i], '.'})
+            
+            # Case handling when the next character in pattern is a '*' wildcard
+            if j + 1 < len(pattern) and pattern[j + 1] == '*':
+                # Choice 1: Ignore the '*' pattern completely (match 0 times) -> dp(i, j+2)
+                # Choice 2: Use the '*' if current characters match (match 1+ times) -> dp(i+1, j)
+                ans = dp(i, j + 2) or (first_match and dp(i + 1, j))
+            else:
+                # Normal linear matching path
+                ans = first_match and dp(i + 1, j + 1)
+                
+            memo[(i, j)] = ans
+            return ans
+            
+        return dp(0, 0)
+
+
+# =============================================================================
+# Example Driver Execution
+# =============================================================================
+if __name__ == "__main__":
+    solver = AdvancedStringBitSolutions()
+    
+    print("--- 1. Shortest Palindrome ---")
+    s = "aacecaaa"
+    print(f"Result for '{s}': '{solver.shortestPalindrome(s)}'") # Expected: "aaacecaaa"
+    s2 = "abcd"
+    print(f"Result for '{s2}': '{solver.shortestPalindrome(s2)}'") # Expected: "dcbabcd"
+    
+    print("\n--- 2. Number of Valid Words for Each Puzzle ---")
+    words = ["aaaa", "asas", "able", "ability", "actt", "actor", "actress"]
+    puzzles = ["aboveyz", "abcdefg", "aaaaaaa", "anyasor"]
+    print(f"Valid words count per puzzle: {solver.findNumOfValidWords(words, puzzles)}") 
+    # Expected: [1, 1, 3, 2]
+    
+    print("\n--- 3. Regular Expression Matching ---")
+    txt, pat = "aa", "a*"
+    print(f"Match status ('{txt}', '{pat}'): {solver.isMatch(txt, pat)}") # Expected: True
+    txt2, pat2 = "mississippi", "mis*is*p*."
+    print(f"Match status ('{txt2}', '{pat2}'): {solver.isMatch(txt2, pat2)}") # Expected: False
+
+from collections import deque
+
+# =========================================================================
+# 1. Count of Smaller Numbers After Self (Fenwick Tree / Binary Indexed Tree)
+# Time Complexity: O(N log N) | Space Complexity: O(N)
+# =========================================================================
+class FenwickTree:
+    def __init__(self, size):
+        self.tree = [0] * (size + 1)
+        
+    def update(self, i: int, delta: int):
+        while i < len(self.tree):
+            self.tree[i] += delta
+            i += i & (-i)
+            
+    def query(self, i: int) -> int:
+        total = 0
+        while i > 0:
+            total += self.tree[i]
+            i -= i & (-i)
+        return total
+
+class AdvancedDataStructures:
+    
+    def countSmaller(self, nums: list[int]) -> list[int]:
+        if not nums:
+            return []
+            
+        # Coordinate compression: Map negative/large numbers to a clean 1-to-M index range
+        sorted_unique = sorted(list(set(nums)))
+        ranks = {val: i + 1 for i, val in enumerate(sorted_unique)}
+        
+        bit = FenwickTree(len(ranks))
+        result = []
+        
+        # Traverse backwards to process elements to the "right" first
+        for num in reversed(nums):
+            rank = ranks[num]
+            # Query elements strictly smaller than the current rank
+            result.append(bit.query(rank - 1))
+            # Insert current element into the Fenwick Tree
+            bit.update(rank, 1)
+            
+        return result[::-1]
+
+    # =========================================================================
+    # 2. Largest Rectangle in Histogram (Monotonic Stack)
+    # Time Complexity: O(N) | Space Complexity: O(N)
+    # =========================================================================
+    def largestRectangleArea(self, heights: list[int]) -> int:
+        stack = [] # Stores indices of heights in a strictly increasing order
+        max_area = 0
+        # Append a sentinel 0 value to cleanly flush out remaining elements in the stack at the end
+        extended_heights = heights + [0]
+        
+        for i, h in enumerate(extended_heights):
+            # Maintain monotonicity: if current height is shorter, pop and calculate areas
+            while stack and extended_heights[stack[-1]] > h:
+                height_idx = stack.pop()
+                height = extended_heights[height_idx]
+                
+                # Determine width boundary
+                # If stack is empty, it means 'height' was the smallest seen so far, spanning from 0 to i
+                width = i if not stack else i - stack[-1] - 1
+                max_area = max(max_area, height * width)
+                
+            stack.append(i)
+            
+        return max_area
+
+    # =========================================================================
+    # 3. Sliding Window Maximum (Monotonic Deque)
+    # Time Complexity: O(N) | Space Complexity: O(K)
+    # =========================================================================
+    def maxSlidingWindow(self, nums: list[int], k: int) -> list[int]:
+        dq = deque() # Stores indices of elements maintaining a strictly decreasing order of values
+        result = []
+        
+        for i, num in enumerate(nums):
+            # 1. Remove indices that have slid out of the left boundary of the window
+            if dq and dq[0] < i - k + 1:
+                dq.popleft()
+                
+            # 2. Maintain monotonicity: remove elements smaller than the incoming element
+            while dq and nums[dq[-1]] < num:
+                dq.pop()
+                
+            dq.append(i)
+            
+            # 3. Append the maximum element to result once the initial window size is met
+            if i >= k - 1:
+                result.append(nums[dq[0]])
+                
+        return result
+
+# =========================================================================
+# 4. Prefix and Suffix Search (Suffix-Wrapped Trie)
+# Time Complexity: Initialization: O(N * L^2), Query: O(Prefix + Suffix)
+# Space Complexity: O(N * L^2) where L is the maximum length of a word
+# =========================================================================
+class TrieNode:
+    def __init__(self):
+        self.children = {}
+        self.weight = -1  # Stores the highest index of the word matching this state
+
+class WordFilter:
+    def __init__(self, words: list[str]):
+        self.root = TrieNode()
+        
+        # Loop through words; tracking weight (index)
+        for weight, word in enumerate(words):
+            # The Twist: Insert permutations like "suffix + '{' + prefix" into the Trie
+            # '{' is chosen because its ASCII value is immediately after 'z'
+            wrapped_word = word + '{' + word
+            length = len(word)
+            
+            # Insert every possible suffix slice combination starting up to the sentinel character '{'
+            for i in range(length + 1):
+                curr = self.root
+                curr.weight = weight
+                
+                # Insert the wrapped suffix pattern down into the Trie nodes
+                for char in wrapped_word[i:]:
+                    if char not in curr.children:
+                        curr.children[char] = TrieNode()
+                    curr = curr.children[char]
+                    curr.weight = weight
+
+    def f(self, prefix: str, suffix: str) -> int:
+        curr = self.root
+        # Transform the target lookup to match our Trie topology
+        query = suffix + '{' + prefix
+        
+        for char in query:
+            if char not in curr.children:
+                return -1
+            curr = curr.children[char]
+            
+        return curr.weight
+
+
+# =============================================================================
+# Example Driver Execution
+# =============================================================================
+if __name__ == "__main__":
+    solver = AdvancedDataStructures()
+    
+    print("--- 1. Count of Smaller Numbers After Self ---")
+    nums = [5, 2, 6, 1]
+    print(f"Result for {nums}: {solver.countSmaller(nums)}")  # Expected: [2, 1, 1, 0]
+    
+    print("\n--- 2. Largest Rectangle in Histogram ---")
+    heights = [2, 1, 5, 6, 2, 3]
+    print(f"Result for {heights}: {solver.largestRectangleArea(heights)}")  # Expected: 10
+    
+    print("\n--- 3. Sliding Window Maximum ---")
+    window_nums = [1, 3, -1, -3, 5, 3, 6, 7]
+    k = 3
+    print(f"Result (k={k}): {solver.maxSlidingWindow(window_nums, k)}")  # Expected: [3, 3, 5, 5, 6, 7]
+    
+    print("\n--- 4. Prefix and Suffix Search ---")
+    wf = WordFilter(["apple", "banana", "apex"])
+    print(f"Query index for prefix='ap', suffix='le': {wf.f('ap', 'le')}")  # Expected: 0 (apple)
+    print(f"Query index for prefix='ap', suffix='x': {wf.f('ap', 'x')}")    # Expected: 2 (apex)
+    print(f"Query index for prefix='b', suffix='na': {wf.f('b', 'na')}")    # Expected: 1 (banana)
+    print(f"Query index for non-existent pair: {wf.f('xyz', 'abc')}")       # Expected: -1
+
+
+from collections import deque, defaultdict
+
+class AdvancedGraphSolutions:
+    
+    # =========================================================================
+    # 1. Critical Connections in a Network (Tarjan's Bridge-Finding Algorithm)
+    # Time Complexity: O(V + E) | Space Complexity: O(V + E)
+    # =========================================================================
+    def criticalConnections(self, n: int, connections: list[list[int]]) -> list[list[int]]:
+        # Build adjacency list
+        graph = defaultdict(list)
+        for u, v in connections:
+            graph[u].append(v)
+            graph[v].append(u)
+            
+        # rank[i] stores the discovery time of node i
+        # low[i] stores the lowest rank reachable from node i via back-edges
+        rank = [-1] * n
+        low = [-1] * n
+        bridges = []
+        
+        def dfs(node: int, parent: int, discovery_time: int):
+            rank[node] = low[node] = discovery_time
+            
+            for neighbor in graph[node]:
+                if neighbor == parent:
+                    continue
+                
+                if rank[neighbor] == -1:
+                    # Neighbor hasn't been visited; recurse down the DFS tree
+                    dfs(neighbor, node, discovery_time + 1)
+                    
+                    # Upon return, update low-link value of the current node
+                    low[node] = min(low[node], low[neighbor])
+                    
+                    # If neighbor cannot reach back to 'node' or any ancestral node, 
+                    # the edge between them is a bridge.
+                    if low[neighbor] > rank[node]:
+                        bridges.append([node, neighbor])
+                else:
+                    # Neighbor is already visited; it's a back-edge. Update low-link.
+                    low[node] = min(low[node], rank[neighbor])
+                    
+        dfs(0, -1, 0)
+        return bridges
+
+    # =========================================================================
+    # 2. Word Ladder II (BFS Layering + DFS Backtracking)
+    # Time Complexity: O(N * 26^L + Total Paths) | Space Complexity: O(N * L)
+    # =========================================================================
+    def findLadders(self, beginWord: str, endWord: str, wordList: list[str]) -> list[list[str]]:
+        word_set = set(wordList)
+        if endWord not in word_set:
+            return []
+            
+        # Step 1: BFS to find the shortest distance from beginWord to all reachable words
+        # and map valid directed parent-to-child edges that belong to the shortest paths.
+        word_set.discard(beginWord)
+        adj_graph = defaultdict(list)
+        distance = {beginWord: 0}
+        
+        queue = deque([beginWord])
+        found = False
+        
+        while queue and not found:
+            visited_this_level = set()
+            for _ in range(len(queue)):
+                curr_word = queue.popleft()
+                curr_dist = distance[curr_word]
+                
+                # Generate all possible single-letter mutations
+                for i in range(len(curr_word)):
+                    original_char = curr_word[i]
+                    for c in 'abcdefghijklmnopqrstuvwxyz':
+                        if c == original_char:
+                            continue
+                        next_word = curr_word[:i] + c + curr_word[i+1:]
+                        
+                        if next_word in word_set:
+                            # If it's a new word or visited at the current level (same short path length)
+                            if next_word not in distance or distance[next_word] == curr_dist + 1:
+                                if next_word not in distance:
+                                    distance[next_word] = curr_dist + 1
+                                    queue.append(next_word)
+                                    visited_this_level.add(next_word)
+                                
+                                # Record transition for path reconstruction
+                                adj_graph[curr_word].append(next_word)
+                                if next_word == endWord:
+                                    found = True
+                                    
+            # Remove words visited in this level from the available set so they aren't reused later
+            for word in visited_this_level:
+                word_set.discard(word)
+                
+        if not found:
+            return []
+            
+        # Step 2: DFS backtracking to extract all paths using our generated adj_graph
+        results = []
+        
+        def backtrack(word: str, path: list[str]):
+            if word == endWord:
+                results.append(list(path))
+                return
+            for next_word in adj_graph[word]:
+                path.append(next_word)
+                backtrack(next_word, path)
+                path.pop()
+                
+        backtrack(beginWord, [beginWord])
+        return results
+
+    # =========================================================================
+    # 3. Longest Path With Different Adjacent Characters (Tree DP)
+    # Time Complexity: O(V) | Space Complexity: O(V)
+    # =========================================================================
+    def longestPath(self, parent: list[int], s: str) -> int:
+        n = len(parent)
+        children = defaultdict(list)
+        for i in range(1, n):
+            children[parent[i]].append(i)
+            
+        self.global_max = 0
+        
+        def dfs(node: int) -> int:
+            # Tracks the top two longest paths extending from this node into its children
+            max1, max2 = 0, 0
+            
+            for child in children[node]:
+                child_path_len = dfs(child)
+                
+                # Valid transition rule: Adjacent characters must differ
+                if s[node] != s[child]:
+                    if child_path_len > max1:
+                        max2 = max1
+                        max1 = child_path_len
+                    elif child_path_len > max2:
+                        max2 = child_path_len
+                        
+            # Update the global longest path passing through this node as a turning point
+            self.global_max = max(self.global_max, max1 + max2 + 1)
+            
+            # Return the single longest valid branch extending upward to the parent node
+            return max1 + 1
+            
+        dfs(0)
+        return self.global_max
+
+    # =========================================================================
+    # 4. Optimize Water Distribution in a Village (Virtual Node MST / Kruskal)
+    # Time Complexity: O(E log E) | Space Complexity: O(V + E)
+    # =========================================================================
+    def supplyWater(self, n: int, wells: list[int], pipes: list[list[int]]) -> int:
+        # Union-Find (Disjoint Set Union) data structure for Kruskal's algorithm
+        parent = list(range(n + 1))
+        
+        def find(i):
+            if parent[i] == i:
+                return i
+            parent[i] = find(parent[i])  # Path compression
+            return parent[i]
+            
+        def union(i, j):
+            root_i = find(i)
+            root_j = find(j)
+            if root_i != root_j:
+                parent[root_i] = root_j
+                return True
+            return False
+
+        edges = []
+        
+        # The Breakthrough: Transform well drilling into an edge from virtual Node 0
+        for i, cost in enumerate(wells):
+            edges.append((cost, 0, i + 1))
+            
+        # Add normal piping connections
+        for u, v, cost in pipes:
+            edges.append((cost, u, v))
+            
+        # Kruskal's Algorithm: Sort edges by cost
+        edges.sort()
+        
+        total_cost = 0
+        edges_used = 0
+        
+        for cost, u, v in edges:
+            if union(u, v):
+                total_cost += cost
+                edges_used += 1
+                # An MST containing 'n' houses + 1 virtual node will have exactly 'n' edges
+                if edges_used == n:
+                    break
+                    
+        return total_cost
+
+# =============================================================================
+# Example Driver Execution
+# =============================================================================
+if __name__ == "__main__":
+    solver = AdvancedGraphSolutions()
+    
+    print("--- 1. Critical Connections in a Network ---")
+    connections = [[0,1],[1,2],[2,0],[1,3]]
+    print(f"Bridges found: {solver.criticalConnections(4, connections)}") # Expected: [[1, 3]]
+    
+    print("\n--- 2. Word Ladder II ---")
+    beginWord = "hit"
+    endWord = "cog"
+    wordList = ["hot","dot","dog","lot","log","cog"]
+    print(f"All Shortest Paths: {solver.findLadders(beginWord, endWord, wordList)}")
+    # Expected: [['hit', 'hot', 'dot', 'dog', 'cog'], ['hit', 'hot', 'lot', 'log', 'cog']]
+    
+    print("\n--- 3. Longest Path With Different Adjacent Characters ---")
+    parents = [-1,0,0,1,1,2]
+    labels = "abacbe"
+    print(f"Longest Valid Path Length: {solver.longestPath(parents, labels)}") # Expected: 3
+    
+    print("\n--- 4. Optimize Water Distribution in a Village ---")
+    wells = [1, 2, 2]
+    pipes = [[1, 2, 1], [2, 3, 1]]
+    print(f"Minimum Total Cost: {solver.supplyWater(3, wells, pipes)}") # Expected: 3 (Well at 1, pipe 1->2, pipe 2->3)
+
+
+import math
+
+class AdvancedDPSolutions:
+    
+    # =========================================================================
+    # 1. Super Egg Drop
+    # Time Complexity: O(K * log N) | Space Complexity: O(K)
+    # =========================================================================
+    def superEggDrop(self, K: int, N: int) -> int:
+        # dp[i] represents the max floors we can check with i eggs
+        dp = [0] * (K + 1)
+        moves = 0
+        
+        # Keep track of moves until we can cover at least N floors
+        while dp[K] < N:
+            moves += 1
+            # Traverse backwards to use values from the previous move iteration
+            for eggs in range(K, 0, -1):
+                dp[eggs] = dp[eggs] + dp[eggs - 1] + 1
+                
+        return moves
+
+    # =========================================================================
+    # 2. Burst Balloons
+    # Time Complexity: O(N^3) | Space Complexity: O(N^2)
+    # =========================================================================
+    def maxCoins(self, nums: list[int]) -> int:
+        # Add implicit boundaries of 1 to handle edges cleanly
+        A = [1] + nums + [1]
+        n = len(A)
+        dp = [[0] * n for _ in range(n)]
+        
+        # length is the span of the sub-interval we are calculating
+        for length in range(1, n - 1):
+            for i in range(1, n - length):
+                j = i + length - 1
+                # Try making every balloon k within [i, j] the last one to burst
+                for k in range(i, j + 1):
+                    coins = A[i-1] * A[k] * A[j+1]
+                    total = dp[i][k-1] + coins + dp[k+1][j]
+                    dp[i][j] = max(dp[i][j], total)
+                    
+        return dp[1][n-2]
+
+    # =========================================================================
+    # 3. Cherry Pickup II
+    # Time Complexity: O(R * C^2) | Space Complexity: O(C^2)
+    # =========================================================================
+    def cherryPickup(self, grid: list[list[int]]) -> int:
+        rows, cols = len(grid), len(grid[0])
+        
+        # Initialize DP table for the bottom row
+        # dp[c1][c2] stores max cherries when Robot 1 is at c1 and Robot 2 is at c2
+        dp = [[-1] * cols for _ in range(cols)]
+        
+        # Base case: Bottom row configuration
+        for c1 in range(cols):
+            for c2 in range(cols):
+                dp[c1][c2] = grid[rows-1][c1] if c1 == c2 else grid[rows-1][c1] + grid[rows-1][c2]
+                
+        # Transition upwards row by row
+        for r in range(rows - 2, -1, -1):
+            next_dp = [[-1] * cols for _ in range(cols)]
+            for c1 in range(cols):
+                for c2 in range(cols):
+                    # Current cherries collected in this row
+                    current_cherries = grid[r][c1] if c1 == c2 else grid[r][c1] + grid[r][c2]
+                    
+                    max_next = -1
+                    # Explore all 9 combinations of moves for the next row
+                    for dc1 in [-1, 0, 1]:
+                        for dc2 in [-1, 0, 1]:
+                            nc1, nc2 = c1 + dc1, c2 + dc2
+                            if 0 <= nc1 < cols and 0 <= nc2 < cols:
+                                max_next = max(max_next, dp[nc1][nc2])
+                    
+                    if max_next != -1:
+                        next_dp[c1][c2] = current_cherries + max_next
+            dp = next_dp
+            
+        return dp[0][cols-1]
+
+    # =========================================================================
+    # 4. Minimum Cost to Cut a Stick
+    # Time Complexity: O(M^3) | Space Complexity: O(M^2)
+    # =========================================================================
+    def minCost(self, n: int, cuts: list[int]) -> int:
+        # Sort and pad with the outer boundaries of the stick
+        A = sorted(cuts) + [0, n]
+        A.sort()
+        m = len(A)
+        
+        # dp[i][j] stores the min cost to make all cuts between A[i] and A[j]
+        dp = [[0] * m for _ in range(m)]
+        
+        # diff is the gap between the indices i and j
+        for diff in range(2, m):
+            for i in range(m - diff):
+                j = i + diff
+                dp[i][j] = float('inf')
+                # Try making the first cut at position k between i and j
+                for k in range(i + 1, j):
+                    cost = A[j] - A[i]
+                    dp[i][j] = min(dp[i][j], dp[i][k] + dp[k][j] + cost)
+                    
+        return dp[0][m-1]
+
+# =============================================================================
+# Example Driver Execution
+# =============================================================================
+if __name__ == "__main__":
+    solver = AdvancedDPSolutions()
+    
+    print("--- 1. Super Egg Drop ---")
+    print(f"Result (K=2, N=6): {solver.superEggDrop(2, 6)}")  # Expected: 3
+    
+    print("\n--- 2. Burst Balloons ---")
+    print(f"Result ([3,1,5,8]): {solver.maxCoins([3,1,5,8])}")  # Expected: 167
+    
+    print("\n--- 3. Cherry Pickup II ---")
+    grid = [[3,1,1],[2,5,1],[1,5,5],[2,1,1]]
+    print(f"Result: {solver.cherryPickup(grid)}")  # Expected: 24
+    
+    print("\n--- 4. Minimum Cost to Cut a Stick ---")
+    print(f"Result (n=7, cuts=[1,3,4,5]): {solver.minCost(7, [1,3,4,5])}")  # Expected: 16
+
+
+
+
